@@ -26,8 +26,7 @@ SPIDER_MIDDLEWARES = {
     'scrapy.contrib.spidermiddleware.depth.DepthMiddleware': None,
 }
 
-# Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'ghcrawler (+http://www.yourdomain.com)'
+USER_AGENT = 'GitHub Crawler (+https://github.com/linhr/dighub)'
 
 DEFAULT_REQUEST_HEADERS = {
     'Accept': 'application/vnd.github.v3+json',
