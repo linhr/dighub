@@ -36,7 +36,7 @@ class GitHubSpider(Spider):
 
     def __init__(self, start_repos=None, start_users=None, *args, **kwargs):
         super(GitHubSpider, self).__init__(*args, **kwargs)
-        self.start_repos = start_repos or [{ 'owner': 'jquery', 'repo': 'jquery' }]
+        self.start_repos = start_repos or [{'owner': 'jquery', 'repo': 'jquery'}]
         self.start_users = start_users or []
 
     def parse(self, response):
@@ -65,12 +65,12 @@ class GitHubSpider(Spider):
         yield Request(
             url=expand(repo['collaborators_url'], {}),
             callback=self.parse_collaborators,
-            meta={ 'repo': item.copy() }
+            meta={'repo': item.copy()}
         )
         yield Request(
             url=expand(repo['contributors_url'], {}),
             callback=self.parse_contributors,
-            meta={ 'repo': item.copy() }
+            meta={'repo': item.copy()}
         )
 
 
@@ -81,7 +81,7 @@ class GitHubSpider(Spider):
         if user['type'] == 'Organization':
             org_url = self.endpoints['organization_url']
             yield Request(
-                url=expand(org_url, { 'org': user['login'] }),
+                url=expand(org_url, {'org': user['login']}),
                 callback=self.parse_organization
             )
 
@@ -91,7 +91,7 @@ class GitHubSpider(Spider):
         yield Request(
             url=expand(org['members_url'], {}),
             callback=self.parse_members,
-            meta={ 'org': item }
+            meta={'org': item}
         )
 
     @paginated
