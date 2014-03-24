@@ -2,7 +2,7 @@ import re
 import json
 
 LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="(?P<rel>next|prev|first|last)"', flags=re.I)
-
+NEXT_LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="next"', flags=re.I)
 
 def parse_json_body(response):
     return json.loads(response.body_as_unicode())
@@ -18,3 +18,7 @@ def parse_link_header(response):
         url = match.group('url')
         links[rel] = url
     return links
+
+def has_next_page(response):
+    link_header = response.headers.get('link', '')
+    return bool(NEXT_LINK_PATTERN.search(link_header))
