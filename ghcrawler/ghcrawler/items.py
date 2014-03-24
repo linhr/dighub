@@ -32,7 +32,6 @@ class Account(GitHubItem, EntityMixin):
     """user/organization account information"""
     login = Field()
     id = Field()
-    gravatar_id = Field()
     type = Field()
     site_admin = Field()
     name = Field()
