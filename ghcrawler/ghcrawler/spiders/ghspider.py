@@ -36,7 +36,7 @@ class GitHubSpider(Spider):
     def __init__(self, start_repos=None, start_users=None, start_orgs=None,
             *args, **kwargs):
         super(GitHubSpider, self).__init__(*args, **kwargs)
-        self.start_repos = start_repos or [{'owner': 'jquery', 'repo': 'jquery'}]
+        self.start_repos = start_repos or []
         self.start_users = start_users or []
         self.start_orgs = start_orgs or []
 
