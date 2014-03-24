@@ -1,5 +1,3 @@
-import re
-import json
 import functools
 from uritemplate import expand
 try:
@@ -9,9 +7,8 @@ except ImportError:
 from scrapy.http import Request
 
 import ghcrawler.items as items
+from ghcrawler.utils import parse_json_body, parse_link_header
 
-
-LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="(?P<rel>next|prev|first|last)"', flags=re.I)
 
 def paginated(parser):
     @functools.wraps(parser)
@@ -40,7 +37,7 @@ class GitHubSpider(Spider):
         self.start_users = start_users or []
 
     def parse(self, response):
-        self.endpoints = self.parse_json_body(response)
+        self.endpoints = parse_json_body(response)
         repo_url = self.endpoints['repository_url']
         user_url = self.endpoints['user_url']
         for repo in self.start_repos:
@@ -55,7 +52,7 @@ class GitHubSpider(Spider):
             )
 
     def parse_repository(self, response):
-        repo = self.parse_json_body(response)
+        repo = parse_json_body(response)
         item = items.Repository.from_dict(repo)
         yield item
         yield Request(
@@ -75,7 +72,7 @@ class GitHubSpider(Spider):
 
 
     def parse_user(self, response):
-        user = self.parse_json_body(response)
+        user = parse_json_body(response)
         item = items.Account.from_dict(user)
         yield item
         if user['type'] == 'Organization':
@@ -86,7 +83,7 @@ class GitHubSpider(Spider):
             )
 
     def parse_organization(self, response):
-        org = self.parse_json_body(response)
+        org = parse_json_body(response)
         item = items.Account.from_dict(org)
         yield Request(
             url=expand(org['members_url'], {}),
@@ -96,42 +93,27 @@ class GitHubSpider(Spider):
 
     @paginated
     def parse_collaborators(self, response):
-        users = self.parse_json_body(response)
+        users = parse_json_body(response)
         repo = response.meta['repo']
         for u in users:
             yield items.Collaborator(repo=repo, user=u)
 
     @paginated
     def parse_contributors(self, response):
-        users = self.parse_json_body(response)
+        users = parse_json_body(response)
         repo = response.meta['repo']
         for u in users:
             yield items.Contributor(repo=repo, user=u)
 
     @paginated
     def parse_members(self, response):
-        users = self.parse_json_body(response)
+        users = parse_json_body(response)
         org = response.meta['org']
         for u in users:
             yield items.Membership(org=org, user=u)
 
-    def parse_json_body(self, response):
-        return json.loads(response.body_as_unicode())
-
-    def parse_link_header(self, response):
-        links = {}
-        link_headers = response.headers.get('link', '').split(',')
-        for link in link_headers:
-            match = LINK_PATTERN.search(link)
-            if not match:
-                continue
-            rel = match.group('rel').lower()
-            url = match.group('url')
-            links[rel] = url
-        return links
-
     def next_page(self, response):
-        links = self.parse_link_header(response)
+        links = parse_link_header(response)
         if 'next' in links:
             r = response.request.replace(url=links['next'])
             r.meta['dont_increase_depth'] = True
