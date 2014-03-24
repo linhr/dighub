@@ -1,8 +1,12 @@
 import re
 import json
+from collections import namedtuple
 
 LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="(?P<rel>next|prev|first|last)"', flags=re.I)
 NEXT_LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="next"', flags=re.I)
+
+
+RateLimit = namedtuple('RateLimit', ['limit', 'remaining', 'reset'])
 
 def parse_json_body(response):
     return json.loads(response.body_as_unicode())
@@ -22,3 +26,9 @@ def parse_link_header(response):
 def has_next_page(response):
     link_header = response.headers.get('link', '')
     return bool(NEXT_LINK_PATTERN.search(link_header))
+
+def parse_rate_limit(response):
+    limit = response.headers.get('x-ratelimit-limit', '0')
+    remaining = response.headers.get('x-ratelimit-remaining', '0')
+    reset = response.headers.get('x-ratelimit-reset', '0')
+    return RateLimit(limit=int(limit), remaining=int(remaining), reset=int(reset))

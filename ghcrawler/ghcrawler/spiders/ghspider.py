@@ -27,6 +27,8 @@ class GitHubSpider(Spider):
     spider to collect data on GitHub
     """
 
+    http_user = ''
+    http_pass = ''
     name = 'github-spider'
     allowed_domains = ['api.github.com']
     start_urls = ['https://api.github.com/']
@@ -35,6 +37,15 @@ class GitHubSpider(Spider):
         super(GitHubSpider, self).__init__(*args, **kwargs)
         self.start_repos = start_repos or [{'owner': 'jquery', 'repo': 'jquery'}]
         self.start_users = start_users or []
+
+    @classmethod
+    def from_crawler(cls, crawler, **spider_kwargs):
+        spider = cls(**spider_kwargs)
+        token = crawler.settings.get('GITHUB_API_TOKEN', None)
+        if token:
+            spider.http_user = token
+            spider.http_pass = 'x-oauth-basic'
+        return spider
 
     def parse(self, response):
         self.endpoints = parse_json_body(response)
