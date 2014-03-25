@@ -156,7 +156,7 @@ class GitHubSpider(Spider):
         users = parse_json_body(response)
         repo = response.meta['repo']
         for u in users:
-            yield items.Contributor(repo=repo, user=u)
+            yield items.Contributor(repo=repo, user=u, contributions=u.get('contributions'))
             yield self._account_request(u)
 
     def parse_repository_languages(self, response):
