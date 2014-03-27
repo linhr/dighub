@@ -31,10 +31,10 @@ class PaginationMiddleware(object):
 
 
 class PaginationAwareShutdownMiddleware(object):
-    '''
+    """
     finish spider job gracefully after receiving SIGINT
     try to finish crawling all ongoing paginated endpoints while ignoring others
-    '''
+    """
     def __init__(self, enabled=False):
         self._shutdown = False
         self._enabled = enabled
