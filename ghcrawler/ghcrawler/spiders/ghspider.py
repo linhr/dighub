@@ -304,4 +304,5 @@ class GitHubSpider(Spider):
         if 'next' in links:
             r = response.request.replace(url=links['next'])
             r.meta['dont_increase_depth'] = True
+            r.meta['has_previous_page'] = True
             return r
