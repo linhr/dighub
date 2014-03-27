@@ -31,8 +31,18 @@ class DuplicateRequestFilter(object):
         if 'endpoint' not in request.meta:
             request.meta['endpoint'] = self._get_endpoint(request.url)
         
+        # do not filter start endpoints, even if they are visited
+        if request.meta.get('start'):
+            return
+        
         endpoint = request.meta['endpoint']
-        if endpoint in self.db:
+        time = self.db.get(endpoint)
+        if time:
+            # ignore visited endpoint
+            raise IgnoreRequest()
+        if not request.meta.get('visit'):
+            # mark endpoint for future visit
+            self.db[endpoint] = '' 
             raise IgnoreRequest()
 
     def process_response(self, request, response, spider):
@@ -40,7 +50,7 @@ class DuplicateRequestFilter(object):
             endpoint = request.meta.get('endpoint', '')
             if endpoint not in ['', '/']:
                 time = datetime.datetime.utcnow().strftime(UTC_TIME_FORMAT)
-                self.db[endpoint] = time
+                self.db[endpoint] = '|'.join(filter(None, (self.db.get(endpoint), time)))
         return response
 
     def _get_endpoint(self, url):
