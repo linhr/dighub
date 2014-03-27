@@ -122,9 +122,11 @@ class GitHubSpider(Spider):
     def _repository_params(self, repo):
         return {'owner': repo['owner']['login'], 'repo': repo['name']}
 
-    def _repository_requests(self, repo):
+    def _repository_requests(self, repo, save_summary=True):
         params = self._repository_params(repo)
         yield self._request_from_endpoint('repository', params=params)
+        if save_summary:
+            yield items.RepositorySummary.from_dict(repo)
         for x in self._repository_resources_requests(repo):
             yield x
 
@@ -142,9 +144,11 @@ class GitHubSpider(Spider):
     def _user_params(self, user):
         return {'user': user['login']}
 
-    def _user_requests(self, user):
+    def _user_requests(self, user, save_summary=True):
         params = self._user_params(user)
         yield self._request_from_endpoint('user', params=params)
+        if save_summary:
+            yield items.AccountSummary.from_dict(user)
         for x in self._user_resources_requests(user):
             yield x
 
@@ -162,9 +166,11 @@ class GitHubSpider(Spider):
     def _organization_params(self, org):
         return {'org': org['login']}
 
-    def _organization_requests(self, org):
+    def _organization_requests(self, org, save_summary=True):
         params = self._organization_params(org)
         yield self._request_from_endpoint('organization', params=params)
+        if save_summary:
+            yield items.AccountSummary.from_dict(org)
         for x in self._organization_resources_requests(org):
             yield x
 
@@ -185,8 +191,7 @@ class GitHubSpider(Spider):
 
     def parse_repository(self, response):
         repo = parse_json_body(response)
-        item = items.Repository.from_dict(repo)
-        yield item
+        yield items.Repository.from_dict(repo)
         for x in self._account_requests(repo['owner']):
             yield x
         if response.meta.get('start'):
@@ -195,16 +200,14 @@ class GitHubSpider(Spider):
 
     def parse_user(self, response):
         user = parse_json_body(response)
-        item = items.Account.from_dict(user)
-        yield item
+        yield items.Account.from_dict(user)
         if response.meta.get('start'):
             for x in self._user_resources_requests(user):
                 yield x
 
     def parse_organization(self, response):
         org = parse_json_body(response)
-        item = items.Account.from_dict(org)
-        yield item
+        yield items.Account.from_dict(org)
         if response.meta.get('start'):
             for x in self._organization_resources_requests(org):
                 yield x

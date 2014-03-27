@@ -1,7 +1,7 @@
 import os.path
 from scrapy.contrib.exporter import JsonLinesItemExporter
 
-from items import GITHUB_ITEM_TYPES
+import items
 
 class GitHubItemStoragePipeline(object):
     def __init__(self, path):
@@ -15,7 +15,7 @@ class GitHubItemStoragePipeline(object):
     def open_spider(self, spider):
         self.files = {}
         self.exporters = {}
-        for name in GITHUB_ITEM_TYPES:
+        for name in items.__all__:
             path = os.path.join(self.path, name + '.jsonl')
             output = open(path, 'a+')
             self.files[name] = output
@@ -30,7 +30,7 @@ class GitHubItemStoragePipeline(object):
             f.close()
 
     def process_item(self, item, spider):
-        name = type(item).__name__.lower()
+        name = type(item).__name__
         if name in self.exporters:
             self.exporters[name].export_item(item)
         return item

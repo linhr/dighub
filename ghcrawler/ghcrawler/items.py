@@ -1,8 +1,8 @@
 from scrapy.item import Item, Field
 
-GITHUB_ITEM_TYPES = [
-    'account', 'repository', 'membership', 'collaborator', 'contributor', 'languages',
-    'follow', 'stargazer', 'subscriber',
+__all__ = [
+    'Account', 'Repository', 'Membership', 'Collaborator', 'Contributor', 'Languages',
+    'Follow', 'Stargazer', 'Subscriber', 'AccountSummary', 'RepositorySummary',
 ]
 
 class GitHubItem(Item):
@@ -48,6 +48,10 @@ class Account(GitHubItem, EntityMixin):
     updated_at = Field()
 
 
+class AccountSummary(Account):
+    """account summary"""
+
+
 class Repository(GitHubItem, EntityMixin):
     """repository information"""
     id = Field()
@@ -76,6 +80,10 @@ class Repository(GitHubItem, EntityMixin):
 
 Repository.parent = Field(converter=Repository.keep_id)
 Repository.source = Field(converter=Repository.keep_id)
+
+
+class RepositorySummary(Repository):
+    """repository summary"""
 
 
 class Membership(GitHubItem):
