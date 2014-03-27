@@ -165,6 +165,8 @@ class GitHubSpider(Spider):
     def _organization_requests(self, org):
         params = self._organization_params(org)
         yield self._request_from_endpoint('organization', params=params)
+        for x in self._organization_resources_requests(org):
+            yield x
 
     def _organization_resources_requests(self, org):
         assert 'id' in org
