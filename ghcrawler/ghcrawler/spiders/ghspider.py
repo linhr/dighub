@@ -194,6 +194,12 @@ class GitHubSpider(Spider):
         yield items.Repository.from_dict(repo)
         for x in self._account_requests(repo['owner']):
             yield x
+        if 'parent' in repo:
+            for x in self._repository_requests(repo['parent']):
+                yield x
+        if 'source' in repo:
+            for x in self._repository_requests(repo['source']):
+                yield x
         if response.meta.get('start'):
             for x in self._repository_resources_requests(repo):
                 yield x
