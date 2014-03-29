@@ -1,5 +1,7 @@
 import os.path
+import anydbm
 from scrapy.contrib.exporter import JsonLinesItemExporter
+from scrapy.exceptions import DropItem
 
 import items
 
@@ -33,4 +35,30 @@ class GitHubItemStoragePipeline(object):
         name = type(item).__name__
         if name in self.exporters:
             self.exporters[name].export_item(item)
+        return item
+
+
+class GitHubItemFilterPipeline(object):
+    def __init__(self, path):
+        self.path = path
+    
+    @classmethod
+    def from_crawler(cls, crawler):
+        path = crawler.settings.get('FILTER_STORAGE_PATH')
+        return cls(path)
+
+    def open_spider(self, spider):
+        filename = os.path.join(self.path, 'items.db')
+        self.db = anydbm.open(filename, 'c')
+    
+    def close_spider(self, spider):
+        self.db.close()
+    
+    def process_item(self, item, spider):
+        if not isinstance(item, (items.AccountSummary, items.RepositorySummary)):
+            return item
+        key = '%s/%s' % (type(item).__name__, item.get('id'))
+        if key in self.db:
+            raise DropItem()
+        self.db[key] = '' # mark crawled account or repository summary
         return item

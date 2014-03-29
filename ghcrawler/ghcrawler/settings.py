@@ -11,6 +11,7 @@ SCHEDULER_DISK_QUEUE = 'scrapy.squeue.PickleFifoDiskQueue'
 SCHEDULER_MEMORY_QUEUE = 'scrapy.squeue.FifoMemoryQueue'
 
 ITEM_PIPELINES = {
+    'ghcrawler.pipelines.GitHubItemFilterPipeline': 700,
     'ghcrawler.pipelines.GitHubItemStoragePipeline': 800,
 }
 

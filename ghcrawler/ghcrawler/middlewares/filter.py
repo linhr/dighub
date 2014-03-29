@@ -1,6 +1,7 @@
 import urlparse
 import anydbm
 import datetime
+import os.path
 from scrapy import signals
 from scrapy.exceptions import IgnoreRequest
 
@@ -21,10 +22,14 @@ class DuplicateRequestFilter(object):
         return o
 
     def spider_opened(self):
-        self.db = anydbm.open(self.path, 'c')
+        filename = os.path.join(self.path, 'visited.db')
+        self.visited = anydbm.open(filename, 'c')
+        filename = os.path.join(self.path, 'pending.db')
+        self.pending = anydbm.open(filename, 'c')
 
     def spider_closed(self):
-        self.db.close()
+        self.visited.close()
+        self.pending.close()
 
     def process_request(self, request, spider):
         # infer endpoint for non-paginated requests or first-page requests
@@ -36,21 +41,30 @@ class DuplicateRequestFilter(object):
             return
         
         endpoint = request.meta['endpoint']
-        time = self.db.get(endpoint)
+        time = self.visited.get(endpoint)
         if time:
             # ignore visited endpoint
             raise IgnoreRequest()
+        # mark endpoint for possible visit
+        self.visited[endpoint] = ''
         if not request.meta.get('visit'):
-            # mark endpoint for future visit
-            self.db[endpoint] = '' 
             raise IgnoreRequest()
 
     def process_response(self, request, response, spider):
-        if response.status == 200 and not has_next_page(response):
-            endpoint = request.meta.get('endpoint', '')
-            if endpoint not in ['', '/']:
-                time = datetime.datetime.utcnow().strftime(UTC_TIME_FORMAT)
-                self.db[endpoint] = '|'.join(filter(None, (self.db.get(endpoint), time)))
+        if response.status != 200:
+            return response
+        endpoint = request.meta.get('endpoint', '')
+        if endpoint in ['', '/']:
+            return response
+        if has_next_page(response):
+            # mark in progress paginated request
+            history = self.pending.get(endpoint)
+            self.pending[endpoint] = '; '.join(filter(None, (history, response.url)))
+        else:
+            time = datetime.datetime.utcnow().strftime(UTC_TIME_FORMAT)
+            history = self.visited.get(endpoint)
+            self.visited[endpoint] = '|'.join(filter(None, (history, time)))
+            self.pending.pop(endpoint, None)
         return response
 
     def _get_endpoint(self, url):
