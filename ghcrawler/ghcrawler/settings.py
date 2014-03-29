@@ -28,6 +28,8 @@ SPIDER_MIDDLEWARES = {
     'scrapy.contrib.spidermiddleware.depth.DepthMiddleware': None,
 }
 
+LOG_FORMATTER = 'ghcrawler.utils.LogFormatter'
+
 USER_AGENT = 'GitHub Crawler (+https://github.com/linhr/dighub)'
 
 DEFAULT_REQUEST_HEADERS = {

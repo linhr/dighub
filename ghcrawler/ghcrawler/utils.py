@@ -1,6 +1,8 @@
 import re
 import json
 from collections import namedtuple
+import scrapy.log
+import scrapy.logformatter
 
 LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="(?P<rel>next|prev|first|last)"', flags=re.I)
 NEXT_LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="next"', flags=re.I)
@@ -32,3 +34,13 @@ def parse_rate_limit(response):
     remaining = response.headers.get('x-ratelimit-remaining', '0')
     reset = response.headers.get('x-ratelimit-reset', '0')
     return RateLimit(limit=int(limit), remaining=int(remaining), reset=int(reset))
+
+
+class LogFormatter(scrapy.logformatter.LogFormatter):
+    def dropped(self, item, exception, response, spider):
+        return {
+            'level': scrapy.log.DEBUG,
+            'format': scrapy.logformatter.DROPPEDFMT,
+            'exception': exception,
+            'item': item,
+        }
