@@ -15,7 +15,7 @@ class DuplicateRequestFilter(object):
 
     @classmethod
     def from_crawler(cls, crawler):
-        path = crawler.settings.get('FILTER_STORAGE_PATH')
+        path = crawler.settings.get('FILTER_STORAGE_PATH', '')
         o = cls(path)
         crawler.signals.connect(o.spider_opened, signal=signals.spider_opened)
         crawler.signals.connect(o.spider_closed, signal=signals.spider_closed)
