@@ -39,6 +39,11 @@ DEFAULT_REQUEST_HEADERS = {
 DOWNLOAD_DELAY = 0.75
 COOKIES_ENABLED = False
 
+HTTPCACHE_ENABLED = True
+HTTPCACHE_DIR = 'httpcache' # relative to the project data directory
+HTTPCACHE_STORAGE = 'scrapy.contrib.httpcache.DbmCacheStorage'
+HTTPCACHE_POLICY = 'scrapy.contrib.httpcache.DummyPolicy'
+
 
 # custom crawler settings for ghcrawler project
 
