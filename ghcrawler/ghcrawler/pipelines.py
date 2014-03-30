@@ -12,6 +12,8 @@ class GitHubItemStoragePipeline(object):
     @classmethod
     def from_crawler(cls, crawler):
         path = crawler.settings.get('ITEM_STORAGE_PATH', '')
+        if path and not os.path.exists(path):
+            os.makedirs(path)
         return cls(path)
 
     def open_spider(self, spider):
@@ -45,6 +47,8 @@ class GitHubItemFilterPipeline(object):
     @classmethod
     def from_crawler(cls, crawler):
         path = crawler.settings.get('FILTER_STORAGE_PATH', '')
+        if path and not os.path.exists(path):
+            os.makedirs(path)
         return cls(path)
 
     def open_spider(self, spider):
