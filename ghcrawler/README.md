@@ -31,5 +31,5 @@ Scrapy project to crawl [GitHub](https://github.com)
 
 ### Running Spider from Command Line
 ```
-scrapy crawl github-spider [-s KEY=VALUE] [-a KEY=VALUE]
+scrapy crawl github-spider [-s KEY=VALUE] [-a KEY=VALUE] -s LOG_LEVEL=INFO -s JOBDIR=<jobdir>
 ```
