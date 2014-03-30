@@ -78,10 +78,39 @@ class GitHubSpider(Spider):
     def __init__(self, start_repos=None, start_users=None, start_orgs=None, policy=None,
             *args, **kwargs):
         super(GitHubSpider, self).__init__(*args, **kwargs)
-        self.start_repos = start_repos
-        self.start_users = start_users
-        self.start_orgs = start_orgs
+
+        def _parse_spider_option(option, parser=None):
+            if parser is None:
+                parser = lambda x: x
+            if isinstance(option, basestring):
+                option = (parser(x) for x in option.split(','))
+                return filter(None, option)
+            else:
+                return option or []
+
+        def _repo_parser(x):
+            parts = x.split('/', 1)
+            if len(parts) < 2:
+                return None
+            return {'owner': parts[0], 'repo': parts[1]}
+
+        def _user_parser(x):
+            return {'user': x}
+
+        def _org_parser(x):
+            return {'org': x}
+
+        def _policy_parser(x):
+            parts = x.split(':', 1)
+            if len(parts) < 2:
+                return None
+            return (parts[0], bool(int(parts[1])))
+
+        self.start_repos = _parse_spider_option(start_repos, parser=_repo_parser)
+        self.start_users = _parse_spider_option(start_users, parser=_user_parser)
+        self.start_orgs = _parse_spider_option(start_orgs, parser=_org_parser)
         self.policy = self.default_policy.copy()
+        policy = dict(_parse_spider_option(policy, parser=_policy_parser))
         if policy is not None:
             self.policy.update(policy)
 
@@ -94,46 +123,15 @@ class GitHubSpider(Spider):
             spider.http_pass = 'x-oauth-basic'
         return spider
 
-    def _parse_repositories_option(self, option):
-        def _parse_full_name(name):
-            parts = name.split('/', 1)
-            if len(parts) < 2:
-                self.log("Invalid repository full name: '%s'" % name, level=log.WARNING)
-                return None
-            return {'owner': parts[0], 'repo': parts[1]}
-        
-        if isinstance(option, basestring):
-            repos = (_parse_full_name(x) for x in option.split(','))
-            return filter(None, repos)
-        else:
-            return option or []
-
-    def _parse_users_option(self, option):
-        if isinstance(option, basestring):
-            return [{'user': x} for x in option.split(',')]
-        else:
-            return option or []
-
-    def _parse_organizations_option(self, option):
-        if isinstance(option, basestring):
-            return [{'org': x} for x in option.split(',')]
-        else:
-            return option or []
-
     def parse(self, response):
         raise NotImplementedError('response parsing is delegated to dedicated methods')
 
     def start_requests(self):
-        repos = self._parse_repositories_option(self.start_repos)
-        for params in repos:
+        for params in self.start_repos:
             yield self._request_from_endpoint('repository', params=params, meta={'start': True})
-        
-        users = self._parse_users_option(self.start_users)
-        for params in users:
+        for params in self.start_users:
             yield self._request_from_endpoint('user', params=params, meta={'start': True})
-        
-        orgs = self._parse_organizations_option(self.start_orgs)
-        for params in orgs:
+        for params in self.start_orgs:
             yield self._request_from_endpoint('organization', params=params, meta={'start': True})
 
     def _request_from_endpoint(self, endpoint, params=None, meta=None, callback=None):
