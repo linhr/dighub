@@ -1,5 +1,5 @@
 import os.path
-import anydbm
+import shelve
 from scrapy.contrib.exporter import JsonLinesItemExporter
 from scrapy.exceptions import DropItem
 
@@ -49,7 +49,7 @@ class GitHubItemFilterPipeline(object):
 
     def open_spider(self, spider):
         filename = os.path.join(self.path, 'items.db')
-        self.db = anydbm.open(filename, 'c')
+        self.db = shelve.open(filename, 'c')
     
     def close_spider(self, spider):
         self.db.close()
@@ -58,7 +58,8 @@ class GitHubItemFilterPipeline(object):
         if not isinstance(item, (items.AccountSummary, items.RepositorySummary)):
             return item
         key = '%s/%s' % (type(item).__name__, item.get('id'))
-        if key in self.db:
+        stored = self.db.get(key, False)
+        if stored:
             raise DropItem()
-        self.db[key] = '' # mark crawled account or repository summary
+        self.db[key] = True # mark crawled account or repository summary
         return item

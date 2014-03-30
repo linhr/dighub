@@ -1,5 +1,5 @@
 import urlparse
-import anydbm
+import shelve
 import datetime
 import os.path
 from scrapy import signals
@@ -22,12 +22,15 @@ class DuplicateRequestFilter(object):
         return o
 
     def spider_opened(self):
+        filename = os.path.join(self.path, 'requested.db')
+        self.requested = shelve.open(filename, 'c')
         filename = os.path.join(self.path, 'visited.db')
-        self.visited = anydbm.open(filename, 'c')
+        self.visited = shelve.open(filename, 'c')
         filename = os.path.join(self.path, 'pending.db')
-        self.pending = anydbm.open(filename, 'c')
+        self.pending = shelve.open(filename, 'c')
 
     def spider_closed(self):
+        self.requested.close()
         self.visited.close()
         self.pending.close()
 
@@ -35,19 +38,19 @@ class DuplicateRequestFilter(object):
         # infer endpoint for non-paginated requests or first-page requests
         if 'endpoint' not in request.meta:
             request.meta['endpoint'] = self._get_endpoint(request.url)
-        
-        # do not filter start endpoints, even if they are visited
-        if request.meta.get('start'):
-            return
-        
+        # log and select requests to visit
+        # start endpoints are always not filtered
+        start = request.meta.get('start')
         endpoint = request.meta['endpoint']
-        time = self.visited.get(endpoint)
-        if time:
-            # ignore visited endpoint
+        if endpoint in self.visited and not start:
             raise IgnoreRequest()
-        # mark endpoint for possible visit
-        self.visited[endpoint] = ''
-        if not request.meta.get('visit'):
+        self._append_value(self.requested, endpoint, {
+            'time': self._now(),
+            'depth': request.meta.get('depth'),
+            'priority': request.priority,
+            'params': self._get_params(request.url),
+        })
+        if not request.meta.get('visit') and not start:
             raise IgnoreRequest()
 
     def process_response(self, request, response, spider):
@@ -58,14 +61,28 @@ class DuplicateRequestFilter(object):
             return response
         if has_next_page(response):
             # mark in progress paginated request
-            history = self.pending.get(endpoint)
-            self.pending[endpoint] = '; '.join(filter(None, (history, response.url)))
+            self._append_value(self.pending, endpoint, {
+                'time': self._now(),
+                'params': self._get_params(response.url),
+            })
         else:
-            time = datetime.datetime.utcnow().strftime(UTC_TIME_FORMAT)
-            history = self.visited.get(endpoint)
-            self.visited[endpoint] = '|'.join(filter(None, (history, time)))
+            self._append_value(self.visited, endpoint, self._now())
             self.pending.pop(endpoint, None)
         return response
 
+    def _now(self):
+        return datetime.datetime.utcnow().strftime(UTC_TIME_FORMAT)
+
+    def _append_value(self, db, k, v):
+        if k in db:
+            values = db[k]
+            values.append(v)
+            db[k] = values
+        else:
+            db[k] = [v]
+
     def _get_endpoint(self, url):
         return urlparse.urlparse(url).path
+
+    def _get_params(self, url):
+        return urlparse.urlparse(url).query
