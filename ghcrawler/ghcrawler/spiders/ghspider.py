@@ -6,6 +6,7 @@ try:
 except ImportError:
     from scrapy.spider import BaseSpider as Spider
 from scrapy.http import Request
+from scrapy import log
 
 import ghcrawler.items as items
 from ghcrawler.utils import parse_json_body, parse_link_header
@@ -77,9 +78,9 @@ class GitHubSpider(Spider):
     def __init__(self, start_repos=None, start_users=None, start_orgs=None, policy=None,
             *args, **kwargs):
         super(GitHubSpider, self).__init__(*args, **kwargs)
-        self.start_repos = start_repos or []
-        self.start_users = start_users or []
-        self.start_orgs = start_orgs or []
+        self.start_repos = start_repos
+        self.start_users = start_users
+        self.start_orgs = start_orgs
         self.policy = self.default_policy.copy()
         if policy is not None:
             self.policy.update(policy)
@@ -93,15 +94,46 @@ class GitHubSpider(Spider):
             spider.http_pass = 'x-oauth-basic'
         return spider
 
+    def _parse_repositories_option(self, option):
+        def _parse_full_name(name):
+            parts = name.split('/', 1)
+            if len(parts) < 2:
+                self.log("Invalid repository full name: '%s'" % name, level=log.WARNING)
+                return None
+            return {'owner': parts[0], 'repo': parts[1]}
+        
+        if isinstance(option, basestring):
+            repos = (_parse_full_name(x) for x in option.split(','))
+            return filter(None, repos)
+        else:
+            return option or []
+
+    def _parse_users_option(self, option):
+        if isinstance(option, basestring):
+            return [{'user': x} for x in option.split(',')]
+        else:
+            return option or []
+
+    def _parse_organizations_option(self, option):
+        if isinstance(option, basestring):
+            return [{'org': x} for x in option.split(',')]
+        else:
+            return option or []
+
     def parse(self, response):
         raise NotImplementedError('response parsing is delegated to dedicated methods')
 
     def start_requests(self):
-        for params in self.start_repos:
+        repos = self._parse_repositories_option(self.start_repos)
+        for params in repos:
             yield self._request_from_endpoint('repository', params=params, meta={'start': True})
-        for params in self.start_users:
+        
+        users = self._parse_users_option(self.start_users)
+        for params in users:
             yield self._request_from_endpoint('user', params=params, meta={'start': True})
-        for params in self.start_orgs:
+        
+        orgs = self._parse_organizations_option(self.start_orgs)
+        for params in orgs:
             yield self._request_from_endpoint('organization', params=params, meta={'start': True})
 
     def _request_from_endpoint(self, endpoint, params=None, meta=None, callback=None):
