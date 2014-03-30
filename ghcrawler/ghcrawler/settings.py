@@ -39,6 +39,9 @@ DEFAULT_REQUEST_HEADERS = {
 DOWNLOAD_DELAY = 0.75
 COOKIES_ENABLED = False
 
+
+# custom crawler settings for ghcrawler project
+
 ITEM_STORAGE_PATH = ''
 FILTER_STORAGE_PATH = ''
 
