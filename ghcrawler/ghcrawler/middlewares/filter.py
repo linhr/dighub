@@ -66,7 +66,7 @@ class DuplicateRequestFilter(object):
                 'params': self._get_params(response.url),
             })
         else:
-            self._append_value(self.visited, endpoint, self._now())
+            self._append_value(self.visited, endpoint, {'time': self._now()})
             self.pending.pop(endpoint, None)
         return response
 
