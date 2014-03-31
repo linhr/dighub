@@ -44,6 +44,8 @@ HTTPCACHE_DIR = 'httpcache' # relative to the project data directory
 HTTPCACHE_STORAGE = 'scrapy.contrib.httpcache.DbmCacheStorage'
 HTTPCACHE_POLICY = 'scrapy.contrib.httpcache.DummyPolicy'
 
+COMMANDS_MODULE = 'ghcrawler.commands'
+
 
 # custom crawler settings for ghcrawler project
 
