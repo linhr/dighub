@@ -12,16 +12,21 @@ import ghcrawler.items as items
 from ghcrawler.utils import parse_json_body, parse_link_header
 
 
-def paginated(parser):
-    @functools.wraps(parser)
-    def wrapper(self, response, *args, **kwargs):
-        result = parser(self, response, *args, **kwargs)
-        for x in result:
-            yield x
-        next = self.next_page(response)
-        if next:
-            yield next
-    return wrapper
+def response_parser(paginated=False):
+    def decorator(parser):
+        @functools.wraps(parser)
+        def wrapper(self, response):
+            body = parse_json_body(response)
+            if body is not None:
+                result = parser(self, body, response.meta)
+                for x in result:
+                    yield x
+            if paginated:
+                next = self.next_page(response)
+                if next:
+                    yield next
+        return wrapper
+    return decorator
 
 
 class GitHubSpider(Spider):
@@ -219,8 +224,8 @@ class GitHubSpider(Spider):
         for x in requests:
             yield x
 
-    def parse_repository(self, response):
-        repo = parse_json_body(response)
+    @response_parser()
+    def parse_repository(self, repo, meta):
         yield items.Repository.from_dict(repo)
         for x in self._account_requests(repo['owner']):
             yield x
@@ -230,81 +235,74 @@ class GitHubSpider(Spider):
         if 'source' in repo:
             for x in self._repository_requests(repo['source']):
                 yield x
-        if response.meta.get('start'):
+        if meta.get('start'):
             for x in self._repository_resources_requests(repo):
                 yield x
 
-    def parse_user(self, response):
-        user = parse_json_body(response)
+    @response_parser()
+    def parse_user(self, user, meta):
         yield items.Account.from_dict(user)
-        if response.meta.get('start'):
+        if meta.get('start'):
             for x in self._user_resources_requests(user):
                 yield x
 
-    def parse_organization(self, response):
-        org = parse_json_body(response)
+    @response_parser()
+    def parse_organization(self, org, meta):
         yield items.Account.from_dict(org)
-        if response.meta.get('start'):
+        if meta.get('start'):
             for x in self._organization_resources_requests(org):
                 yield x
 
-    @paginated
-    def parse_repositories(self, response):
-        repos = parse_json_body(response)
+    @response_parser(paginated=True)
+    def parse_repositories(self, repos, meta):
         for repo in repos:
             for x in self._repository_requests(repo):
                 yield x
 
-    @paginated
-    def parse_users(self, response):
-        users = parse_json_body(response)
+    @response_parser(paginated=True)
+    def parse_users(self, users, meta):
         for user in users:
             for x in self._user_requests(user):
                 yield x
 
-    @paginated
-    def parse_organizations(self, response):
-        orgs = parse_json_body(response)
+    @response_parser(paginated=True)
+    def parse_organizations(self, orgs, meta):
         for org in orgs:
             for x in self._organization_requests(org):
                 yield x
 
-    @paginated
-    def parse_repository_collaborators(self, response):
-        users = parse_json_body(response)
-        repo = response.meta['repo']
+    @response_parser(paginated=True)
+    def parse_repository_collaborators(self, users, meta):
+        repo = meta['repo']
         for user in users:
             yield items.Collaborator(repo=repo, user=user)
             for x in self._account_requests(user):
                 yield x
 
-    @paginated
-    def parse_repository_contributors(self, response):
-        users = parse_json_body(response)
-        repo = response.meta['repo']
+    @response_parser(paginated=True)
+    def parse_repository_contributors(self, users, meta):
+        repo = meta['repo']
         for user in users:
             yield items.Contributor(repo=repo, user=user, contributions=user.get('contributions'))
             for x in self._account_requests(user):
                 yield x
 
-    def parse_repository_languages(self, response):
-        languages = parse_json_body(response)
-        repo = response.meta['repo']
+    @response_parser()
+    def parse_repository_languages(self, languages, meta):
+        repo = meta['repo']
         yield items.Languages(repo=repo, languages=languages)
 
-    @paginated
-    def parse_repository_stargazers(self, response):
-        users = parse_json_body(response)
-        repo = response.meta['repo']
+    @response_parser(paginated=True)
+    def parse_repository_stargazers(self, users, meta):
+        repo = meta['repo']
         for user in users:
             yield items.Stargazer(repo=repo, user=user)
             for x in self._account_requests(user):
                 yield x
 
-    @paginated
-    def parse_repository_subscribers(self, response):
-        users = parse_json_body(response)
-        repo = response.meta['repo']
+    @response_parser(paginated=True)
+    def parse_repository_subscribers(self, users, meta):
+        repo = meta['repo']
         for user in users:
             yield items.Subscriber(repo=repo, user=user)
             for x in self._account_requests(user):
@@ -312,10 +310,9 @@ class GitHubSpider(Spider):
 
     parse_repository_forks = parse_repositories
 
-    @paginated
-    def parse_user_followers(self, response):
-        users = parse_json_body(response)
-        followee = response.meta['user']
+    @response_parser(paginated=True)
+    def parse_user_followers(self, users, meta):
+        followee = meta['user']
         for user in users:
             yield items.Follow(follower=user, followee=followee)
             for x in self._account_requests(user):
@@ -327,10 +324,9 @@ class GitHubSpider(Spider):
     parse_user_starred = parse_repositories
     parse_user_subscriptions = parse_repositories
 
-    @paginated
-    def parse_organization_members(self, response):
-        users = parse_json_body(response)
-        org = response.meta['org']
+    @response_parser(paginated=True)
+    def parse_organization_members(self, users, meta):
+        org = meta['org']
         for user in users:
             yield items.Membership(org=org, user=user)
             for x in self._account_requests(user):

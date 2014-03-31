@@ -11,6 +11,8 @@ NEXT_LINK_PATTERN = re.compile(r'<(?P<url>.+)>;\s*rel="next"', flags=re.I)
 RateLimit = namedtuple('RateLimit', ['limit', 'remaining', 'reset'])
 
 def parse_json_body(response):
+    if not hasattr(response, 'body_as_unicode'):
+        return None
     return json.loads(response.body_as_unicode())
 
 def parse_link_header(response):
