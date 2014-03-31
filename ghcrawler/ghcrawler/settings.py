@@ -43,6 +43,7 @@ HTTPCACHE_ENABLED = True
 HTTPCACHE_DIR = 'httpcache' # relative to the project data directory
 HTTPCACHE_STORAGE = 'scrapy.contrib.httpcache.DbmCacheStorage'
 HTTPCACHE_POLICY = 'scrapy.contrib.httpcache.DummyPolicy'
+HTTPCACHE_IGNORE_HTTP_CODES = [304, 401, 403, 404, 408, 500, 501, 502, 503, 504]
 
 COMMANDS_MODULE = 'ghcrawler.commands'
 
