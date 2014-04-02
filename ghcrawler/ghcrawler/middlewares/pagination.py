@@ -69,6 +69,6 @@ class PaginationAwareShutdownMiddleware(object):
         spider.state['pagination_aware_shutdown'] = True
         if not request.meta.get('has_previous_page'):
             log.msg(format='Ignored <%(method)s %(url)s> (reason: pagination-aware shutdown)',
-                level=log.INFO, method=request.method, url=request.url)
+                level=log.DEBUG, method=request.method, url=request.url)
             raise IgnoreRequest()
         
