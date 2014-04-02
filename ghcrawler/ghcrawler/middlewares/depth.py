@@ -29,10 +29,10 @@ class DepthMiddleware(object):
     def process_spider_output(self, response, result, spider):
         def _filter(request):
             if isinstance(request, Request):
-                inc = 0 if request.meta.get('dont_increase_depth', False) else 1
-                depth = response.meta['depth'] + inc
+                inc = not request.meta.get('dont_increase_depth', False)
+                depth = response.meta['depth'] + (1 if inc else 0)
                 request.meta['depth'] = depth
-                if self.prio:
+                if self.prio and inc:
                     request.priority -= depth * self.prio
                 if self.maxdepth and depth > self.maxdepth:
                     log.msg(format="Ignoring link (depth > %(maxdepth)d): %(requrl)s ",
