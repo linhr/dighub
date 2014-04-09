@@ -23,6 +23,7 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 SPIDER_MIDDLEWARES = {
+    'ghcrawler.middlewares.filter.RequestRecorder': 801,
     # switch to custom `DepthMiddleware` to handle pagination properly
     'ghcrawler.middlewares.depth.DepthMiddleware': 900,
     'scrapy.contrib.spidermiddleware.depth.DepthMiddleware': None,
