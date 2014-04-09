@@ -19,7 +19,7 @@ DOWNLOADER_MIDDLEWARES = {
     'ghcrawler.middlewares.pagination.PaginationMiddleware': 101,
     'ghcrawler.middlewares.filter.DuplicateRequestFilter': 102,
     'ghcrawler.middlewares.logger.LoggerMiddleware': 103,
-    'ghcrawler.middlewares.pagination.PaginationAwareShutdownMiddleware': 999,
+    'ghcrawler.middlewares.pagination.PaginationAwareShutdownMiddleware': 899,
 }
 
 SPIDER_MIDDLEWARES = {
