@@ -142,6 +142,15 @@ class GitHubSpider(Spider):
             yield x
 
     def _repository_resources_requests(self, repo):
+        if 'owner' in repo:
+            for x in self._account_requests(repo['owner']):
+                yield x
+        if 'parent' in repo:
+            for x in self._repository_requests(repo['parent']):
+                yield x
+        if 'source' in repo:
+            for x in self._repository_requests(repo['source']):
+                yield x
         assert 'id' in repo
         params = self._repository_params(repo)
         meta = {'repo': repo}
@@ -204,14 +213,6 @@ class GitHubSpider(Spider):
     @response_parser()
     def parse_repository(self, repo, meta):
         yield items.Repository.from_dict(repo)
-        for x in self._account_requests(repo['owner']):
-            yield x
-        if 'parent' in repo:
-            for x in self._repository_requests(repo['parent']):
-                yield x
-        if 'source' in repo:
-            for x in self._repository_requests(repo['source']):
-                yield x
         if meta.get('start'):
             for x in self._repository_resources_requests(repo):
                 yield x
