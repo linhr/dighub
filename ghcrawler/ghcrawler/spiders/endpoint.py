@@ -2,6 +2,7 @@ import os.path
 import shelve
 import json
 import re
+from scrapy import log
 
 from ghcrawler.spiders.ghspider import GitHubSpider
 
@@ -26,7 +27,9 @@ class EndpointSpider(GitHubSpider):
         self.requests = self._generate_requests()
     
     def start_requests(self):
+        self.log('Start request count: %d' % len(self.requests), level=log.INFO)
         for x in self.requests:
+            self.log('Start request: %s' % x, level=log.INFO)
             yield x
 
     @classmethod
