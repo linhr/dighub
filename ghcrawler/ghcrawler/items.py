@@ -3,6 +3,7 @@ from scrapy.item import Item, Field
 __all__ = [
     'Account', 'Repository', 'Membership', 'Collaborator', 'Contributor', 'Languages',
     'Follow', 'Stargazer', 'Subscriber', 'AccountSummary', 'RepositorySummary',
+    'Commit',
 ]
 
 class GitHubItem(Item):
@@ -23,6 +24,8 @@ class GitHubItem(Item):
 class EntityMixin(object):
     @classmethod
     def keep_id(cls, d):
+        if d is None:
+            return None
         if 'id' in d:
             return cls(id=d['id'])
         return cls()
@@ -127,3 +130,22 @@ class Subscriber(GitHubItem):
     """repository subscriber"""
     repo = Field(converter=Repository.keep_id)
     user = Field(converter=Account.keep_id)
+
+
+def build_commit(commit):
+    if 'tree' in commit:
+        commit['tree'].pop('url', None)
+    commit.pop('url', None)
+    return commit
+
+def build_commit_parents(parents):
+    return [{'sha': x.get('sha')} for x in parents]
+
+class Commit(GitHubItem):
+    """repository commit"""
+    repo = Field(converter=Repository.keep_id)
+    sha = Field()
+    commit = Field(converter=build_commit)
+    author = Field(converter=Account.keep_id)
+    committer = Field(converter=Account.keep_id)
+    parents = Field(converter=build_commit_parents)

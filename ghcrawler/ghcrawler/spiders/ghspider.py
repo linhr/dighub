@@ -49,6 +49,7 @@ class GitHubSpider(Spider):
         'repository_stargazers': '/repos/{owner}/{repo}/stargazers',
         'repository_contributors': '/repos/{owner}/{repo}/contributors',
         'repository_subscribers': '/repos/{owner}/{repo}/subscribers',
+        'repository_commits': '/repos/{owner}/{repo}/commits',
         'user_organizations': '/users/{user}/orgs',
         'user_repositories': '/users/{user}/repos',
         'user_followers': '/users/{user}/followers',
@@ -68,6 +69,7 @@ class GitHubSpider(Spider):
         'repository_stargazers': False,
         'repository_contributors': True,
         'repository_subscribers': False,
+        'repository_commits': False,
         'user_organizations': True,
         'user_repositories': True,
         'user_followers': False,
@@ -149,6 +151,7 @@ class GitHubSpider(Spider):
         yield self._request_from_endpoint('repository_languages', params=params, meta=meta)
         yield self._request_from_endpoint('repository_stargazers', params=params, meta=meta)
         yield self._request_from_endpoint('repository_subscribers', params=params, meta=meta)
+        yield self._request_from_endpoint('repository_commits', params=params, meta=meta)
 
     def _user_params(self, user):
         return {'user': user['login']}
@@ -283,6 +286,19 @@ class GitHubSpider(Spider):
                 yield x
 
     parse_repository_forks = parse_repositories
+
+    @response_parser(paginated=True)
+    def parse_repository_commits(self, commits, meta):
+        repo = meta['repo']
+        for commit in commits:
+            commit['repo'] = repo
+            yield items.Commit.from_dict(commit)
+            if commit.get('author') is not None:
+                for x in self._account_requests(commit['author']):
+                    yield x
+            if commit.get('committer') is not None:
+                for x in self._account_requests(commit['committer']):
+                    yield x
 
     @response_parser(paginated=True)
     def parse_user_followers(self, users, meta):
