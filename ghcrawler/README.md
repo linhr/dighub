@@ -16,6 +16,13 @@ Scrapy project to crawl [GitHub](https://github.com)
  *  `GITHUB_API_TOKEN` - the GitHub personal access token used by the spider
 
 ### Spider Settings
+
+#### Common Settings
+ *  `policy` - spider policy specifying whether to crawl certain types of entities or relations, which can be
+    1.  a dict like `{'user': True, 'repository': True, 'user_starred': True}`
+    2.  a string like `'user:0,repository:1,user_starred:0'`
+
+#### Multitask Spider Settings
  *  `start_repos` - initial repositories to crawl, which can be
     1.  a list of dicts with the keys `'owner'` and `'repo'`
     2.  a comma separated string of repository full names
@@ -25,11 +32,11 @@ Scrapy project to crawl [GitHub](https://github.com)
  *  `start_orgs` - initial organizations to crawl, which can be
     1.  a list of organization names
     2.  a comma separated string of organization names
- *  `policy` - spider policy specifying whether to crawl certain types of entities or relations, which can be
-    1.  a dict like `{'user': True, 'repository': True, 'user_starred': True}`
-    2.  a string like `'user:0,repository:1,user_starred:0'`
+
+#### Endpoint Spider Settings
+ *  `endpoint` - the endpoint to crawl
 
 ### Running Spider from Command Line
 ```
-scrapy crawl github-spider [-s KEY=VALUE] [-a KEY=VALUE] -s JOBDIR=<jobdir> -s LOG_LEVEL=INFO -s LOG_FILE=<logfile> --logstderr
+scrapy crawl {multitask-spider | endpoint-spider} [-s KEY=VALUE] [-a KEY=VALUE] -s JOBDIR=<jobdir> -s LOG_LEVEL=INFO -s LOG_FILE=<logfile> --logstderr
 ```
