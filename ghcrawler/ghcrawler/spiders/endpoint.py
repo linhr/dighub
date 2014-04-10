@@ -20,11 +20,9 @@ class EndpointSpider(GitHubSpider):
 
     def __init__(self, endpoint=None, filter_storage_path='', item_storage_path='',
             policy=None, *args, **kwargs):
-        if endpoint in self.default_policy:
-            if policy is None:
-                policy = {}
-            policy.update({endpoint: True})
         super(EndpointSpider, self).__init__(policy=policy, *args, **kwargs)
+        if endpoint in self.default_policy:
+            self.policy.update({endpoint: True})
         self.endpoint = endpoint
         self.filter_storage_path = filter_storage_path
         self.item_storage_path = item_storage_path
