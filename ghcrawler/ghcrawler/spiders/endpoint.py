@@ -56,7 +56,7 @@ class EndpointSpider(GitHubSpider):
             queuedir = os.path.join(jobdir, 'startrequests.queue')
             if os.path.exists(queuedir):
                 generated = True
-            spider.requestqueue = queuecls(queuedir)
+            spider.requestqueue = queuecls(os.path.join(queuedir, '0'))
         else:
             queuecls = load_object(settings['SCHEDULER_MEMORY_QUEUE'])
             spider.requestqueue = queuecls()
