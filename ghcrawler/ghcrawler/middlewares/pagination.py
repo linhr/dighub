@@ -11,7 +11,7 @@ ITEMS_PER_PAGE = 100
 PAGINATED_ENDPOINTS = [re.compile(e) for e in [
     r'/orgs/.+?/(repos|members|public_members)',
     r'/users/.+?/(followers|following|starred|subscriptions|orgs|repos)',
-    r'/repos/.+?/.+?/(forks|collaborators|contributors|stargazers|subscribers|issues|pulls)',
+    r'/repos/.+?/.+?/(forks|collaborators|contributors|stargazers|subscribers|issues|pulls|commits)',
 ]]
 
 class PaginationMiddleware(object):
