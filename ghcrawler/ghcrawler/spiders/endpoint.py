@@ -76,23 +76,23 @@ class EndpointSpider(GitHubSpider):
         if self.endpoint.startswith('repository'):
             pattern = re.compile(r'^/repos/(?P<owner>[^/]+)/(?P<repo>[^/]+)')
             template = r'\g<owner>/\g<repo>'
-            ids = self._load_ids('repository')
+            items = self._load_items('repository')
             metatype = 'repo'
         elif self.endpoint.startswith('user'):
             pattern = re.compile(r'^/users/(?P<user>[^/]+)')
             template = r'\g<user>'
-            ids = self._load_ids('account')
+            items = self._load_items('account')
             metatype = 'user'
         elif self.endpoint.startswith('organization'):
             pattern = re.compile(r'^/orgs/(?P<org>[^/]+)')
             template = r'\g<org>'
-            ids = self._load_ids('account')
+            items = self._load_items('account')
             metatype = 'org'
         
         if self.endpoint in ['repository', 'user', 'organization']:
             meta = lambda k: None
         else:
-            meta = lambda k: {metatype: {'id': ids.get(k)}}
+            meta = lambda k: {metatype: items.get(k)}
 
         candidates = set()
         for path in requested.iterkeys():
@@ -108,7 +108,7 @@ class EndpointSpider(GitHubSpider):
 
         requested.close()
 
-    def _load_ids(self, item_type):
+    def _load_items(self, item_type):
         filename, key = {
             'account': ('AccountSummary.jsonl', 'login'),
             'repository': ('RepositorySummary.jsonl', 'full_name'),
@@ -118,8 +118,8 @@ class EndpointSpider(GitHubSpider):
         result = {}
         for line in data:
             item = json.loads(line)
-            if key in item and 'id' in item:
-                result[item[key]] = item['id']
+            if key in item:
+                result[item[key]] = item
         data.close()
         return result
 
