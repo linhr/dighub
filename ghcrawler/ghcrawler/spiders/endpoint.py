@@ -3,6 +3,10 @@ import shelve
 import json
 import re
 from scrapy import log
+from scrapy import signals
+from scrapy.utils.reqser import request_to_dict, request_from_dict
+from scrapy.utils.job import job_dir
+from scrapy.utils.misc import load_object
 
 from ghcrawler.spiders.ghspider import GitHubSpider
 
@@ -12,7 +16,7 @@ class EndpointSpider(GitHubSpider):
     name = 'endpoint-spider'
     start_urls = []
 
-    requests = []
+    requestqueue = None
 
     def __init__(self, endpoint=None, filter_storage_path='', item_storage_path='',
             policy=None, *args, **kwargs):
@@ -24,28 +28,50 @@ class EndpointSpider(GitHubSpider):
         self.endpoint = endpoint
         self.filter_storage_path = filter_storage_path
         self.item_storage_path = item_storage_path
-        self.requests = self._generate_requests()
     
     def start_requests(self):
-        self.log('Start request count: %d' % len(self.requests), level=log.INFO)
-        for x in self.requests:
-            self.log('Start request: %s' % x, level=log.INFO)
-            yield x
+        if self.requestqueue is None:
+            return
+        while True:
+            request = self.dequeue_start_request()
+            if not request:
+                break
+            self.log('Start request: %s' % request, level=log.INFO)
+            yield request
 
     @classmethod
     def from_crawler(cls, crawler, **spider_kwargs):
+        settings = crawler.settings
         kwargs = {
-            'filter_storage_path': crawler.settings.get('FILTER_STORAGE_PATH', ''),
-            'item_storage_path': crawler.settings.get('ITEM_STORAGE_PATH', ''),
+            'filter_storage_path': settings.get('FILTER_STORAGE_PATH', ''),
+            'item_storage_path': settings.get('ITEM_STORAGE_PATH', ''),
         }
         kwargs.update(spider_kwargs)
         spider_kwargs = kwargs
         spider = super(EndpointSpider, cls).from_crawler(crawler, **spider_kwargs)
+        spider.stats = crawler.stats
+        
+        jobdir = job_dir(settings)
+        generated = False
+        if jobdir:
+            queuecls = load_object(settings['SCHEDULER_DISK_QUEUE'])
+            queuedir = os.path.join(jobdir, 'startrequests.queue')
+            if os.path.exists(queuedir):
+                generated = True
+            spider.requestqueue = queuecls(queuedir)
+        else:
+            queuecls = load_object(settings['SCHEDULER_MEMORY_QUEUE'])
+            spider.requestqueue = queuecls()
+        if not generated:
+            for x in spider.generate_start_requests():
+                spider.enqueue_start_request(x)
+
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
 
-    def _generate_requests(self):
+    def generate_start_requests(self):
         if self.endpoint not in self.endpoints:
-            return []
+            return
 
         requested = shelve.open(os.path.join(self.filter_storage_path, 'requested.db'), 'r')
 
@@ -70,7 +96,7 @@ class EndpointSpider(GitHubSpider):
         else:
             meta = lambda k: {metatype: {'id': ids.get(k)}}
 
-        candidates = {}
+        candidates = set()
         for path in requested.iterkeys():
             m = pattern.match(path)
             if not m:
@@ -78,12 +104,11 @@ class EndpointSpider(GitHubSpider):
             key = m.expand(template)
             if key in candidates:
                 continue
-            candidates[key] = self._request_from_endpoint(self.endpoint,
+            candidates.add(key)
+            yield self._request_from_endpoint(self.endpoint,
                 params=m.groupdict(), meta=meta(key))
 
         requested.close()
-
-        return candidates.values()
 
     def _load_ids(self, item_type):
         filename, key = {
@@ -99,3 +124,29 @@ class EndpointSpider(GitHubSpider):
                 result[item[key]] = item['id']
         data.close()
         return result
+
+    def enqueue_start_request(self, request):
+        if self.requestqueue is None:
+            return
+        try:
+            d = request_to_dict(request, self)
+            self.requestqueue.push(d)
+            self.stats.inc_value('startrequests/enqueued', spider=self)
+        except ValueError as e:
+            self.log('Non-serializable start request: %s (reason: %s)' % (request, e),
+                level=log.ERROR)
+
+    def dequeue_start_request(self):
+        if self.requestqueue is None:
+            return
+        d = self.requestqueue.pop()
+        if d is None:
+            return
+        self.stats.inc_value('startrequests/dequeued', spider=self)
+        return request_from_dict(d, self)
+
+    def spider_closed(self, spider):
+        if spider != self:
+            return
+        if self.requestqueue is not None:
+            self.requestqueue.close()
