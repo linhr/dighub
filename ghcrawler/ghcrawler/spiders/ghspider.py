@@ -1,3 +1,4 @@
+import re
 import functools
 import uritemplate
 import urlparse
@@ -78,6 +79,12 @@ class GitHubSpider(Spider):
         'user_subscriptions': False,
         'organization_repositories': True,
         'organization_members': True,
+        'fork_collaborators': False,
+        'fork_languages': False,
+        'fork_stargazers': False,
+        'fork_contributors': False,
+        'fork_subscribers': False,
+        'fork_commits': False,
     }
 
     def __init__(self, policy=None, *args, **kwargs):
@@ -123,9 +130,13 @@ class GitHubSpider(Spider):
         if callback is None:
             callback = getattr(self, 'parse_' + endpoint, None)
         request = Request(url=url, callback=callback)
-        if endpoint in self.policy:
-            visit = self.policy[endpoint]
-            request.meta.update({'visit': visit})
+
+        visit = self.policy.get(endpoint, False)
+        if meta is not None and 'repo' in meta and meta['repo'].get('fork', False):
+            forkpolicy = re.sub(r'^repository_', 'fork_', endpoint)
+            visit = visit and self.policy.get(forkpolicy, False)
+        request.meta.update({'visit': visit})
+        
         if meta is not None:
             request.meta.update(meta)
         return request
