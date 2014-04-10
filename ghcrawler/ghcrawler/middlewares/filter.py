@@ -107,3 +107,8 @@ class RequestRecorder(FilterMiddleware):
                 yield x
             elif self._filter_request(x):
                 yield x
+
+    def process_start_requests(self, start_requests, spider):
+        for x in start_requests:
+            if self._filter_request(x):
+                yield x
