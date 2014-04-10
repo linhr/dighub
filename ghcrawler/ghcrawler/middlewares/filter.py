@@ -4,6 +4,7 @@ import datetime
 import os.path
 from scrapy import signals
 from scrapy.http import Request
+from scrapy.exceptions import IgnoreRequest
 
 from ghcrawler.utils import has_next_page
 
@@ -57,6 +58,12 @@ class DuplicateRequestFilter(FilterMiddleware):
     def spider_closed(self):
         self.visited.close()
         self.pending.close()
+
+    def process_request(self, request, spider):
+        start = request.meta.get('start')
+        endpoint = request.meta.get('endpoint')
+        if endpoint in self.visited and not start:
+            raise IgnoreRequest()
 
     def process_response(self, request, response, spider):
         if response.status != 200:
