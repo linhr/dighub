@@ -1,5 +1,7 @@
 import os.path
 import json
+from itertools import combinations
+
 import networkx as nx
 from networkx.readwrite import json_graph
 
@@ -85,6 +87,20 @@ def load_node_attributes(path, graph):
         elif isinstance(n, Account):
             graph.node[n].update(accounts[n.id])
         graph.node[n].pop('id')
+
+def load_language_co_occurrence(path):
+    path = os.path.join(path, 'Languages.jsonl')
+    graph = nx.Graph()
+    with JsonLineData(path) as data:
+        for item in data:
+            languages = item['languages']
+            for k, v in languages.iteritems():
+                graph.add_node(k)
+                graph.node[k]['size'] = graph.node[k].get('size', 0) + v
+            for m, n in combinations(languages.keys(), 2):
+                graph.add_edge(m, n)
+                graph[m][n]['weight'] = graph[m][n].get('weight', 0) + 1
+    return graph
 
 def _model_from_json(model):
     model_type = model['type']
