@@ -2,8 +2,10 @@ from __future__ import with_statement
 
 from matplotlib import pyplot
 import networkx as nx
+import numpy as np
 import math
 
+import ghanalyzer.models
 from ghanalyzer.models import Account, User, Organization, Repository
 
 
@@ -44,3 +46,23 @@ def draw_graph(graph, node_size=300, node_size_zoom=50, edge_label_key=None,
     if edge_label_key:
         nx.draw_networkx_edge_labels(graph, pos,
             edge_labels={(u, v): d.get(edge_label_key) for u, v, d in graph.edges_iter(data=True)})
+
+
+def draw_graph_degrees(graph, node_type=None, weight_key=None):
+    if node_type is not None:
+        node_class = getattr(ghanalyzer.models, node_type)
+        nodes = [n for n in graph if isinstance(n, node_class)]
+    else:
+        nodes = graph.nodes()
+    degrees = graph.degree(nodes, weight=weight_key)
+    if not degrees:
+        return
+    counts = np.bincount(degrees.values())
+    indices, = np.nonzero(counts)
+    x, y = indices, counts[indices]
+    pyplot.loglog(x, y, 'o-', color='black', linewidth=0.5, 
+        markersize=2, markeredgecolor='black', markerfacecolor='blue', alpha=1.0)
+    pyplot.ylim(ymin=0.5)
+    pyplot.xlabel('degree')
+    pyplot.ylabel('count')
+    return x, y
