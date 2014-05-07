@@ -21,8 +21,6 @@ class EndpointSpider(GitHubSpider):
     def __init__(self, endpoint=None, filter_storage_path='', item_storage_path='',
             policy=None, *args, **kwargs):
         super(EndpointSpider, self).__init__(policy=policy, *args, **kwargs)
-        if endpoint in self.default_policy:
-            self.policy.update({endpoint: True})
         self.endpoint = endpoint
         self.filter_storage_path = filter_storage_path
         self.item_storage_path = item_storage_path
@@ -90,9 +88,9 @@ class EndpointSpider(GitHubSpider):
             metatype = 'org'
         
         if self.endpoint in ['repository', 'user', 'organization']:
-            meta = lambda k: None
+            meta = lambda k: {'start': True}
         else:
-            meta = lambda k: {metatype: items.get(k)}
+            meta = lambda k: {metatype: items.get(k), 'start': True}
 
         candidates = set()
         for path in requested.iterkeys():
