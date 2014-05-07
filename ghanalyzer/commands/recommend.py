@@ -1,7 +1,11 @@
 
 from ghanalyzer.command import AnalyzerCommand
 from ghanalyzer.io import read_json_graph, write_json_report, write_pickle_report
-from ghanalyzer.algorithms.recommenders import RandomRecommender
+from ghanalyzer.algorithms.recommenders import (
+    RandomRecommender,
+    UserCFRecommender,
+    ItemCFRecommender,
+)
 from ghanalyzer.evaluation.experiments import RecommenderTest
 from ghanalyzer.evaluation.metrics import iter_precision, iter_recall, average_metric
 
@@ -11,7 +15,7 @@ class Command(AnalyzerCommand):
         return 'evaluate recommendation algorithms'
 
     def define_arguments(self, parser):
-        parser.add_argument('recommender', choices=['Random'])
+        parser.add_argument('recommender', choices=['Random', 'UserCF', 'ItemCF'])
         parser.add_argument('-p', '--path', required=True)
         parser.add_argument('-f', '--format', choices=['json'], default='json')
         parser.add_argument('-o', '--output')
@@ -22,6 +26,9 @@ class Command(AnalyzerCommand):
         group.add_argument('--recommendation-count', type=int, default=1)
         group.add_argument('--random-seed', type=int, default=None)
         group.add_argument('--print-every', type=int, default=None)
+
+        group = parser.add_argument_group('recommender parameters')
+        group.add_argument('--neighbor-count', type=int, default=None)
 
     def run(self, args):
         recommender = self._create_recommender(args)
@@ -43,6 +50,10 @@ class Command(AnalyzerCommand):
     def _create_recommender(self, args):
         if args.recommender == 'Random':
             return RandomRecommender()
+        elif args.recommender == 'UserCF':
+            return UserCFRecommender(n_neighbors=args.neighbor_count)
+        elif args.recommender == 'ItemCF':
+            return ItemCFRecommender(n_neighbors=args.neighbor_count)
 
     def _load_dataset(self, args):
         if args.format == 'json':
