@@ -19,8 +19,8 @@ Scrapy project to crawl [GitHub](https://github.com)
 
 #### Common Settings
  *  `policy` - spider policy specifying whether to crawl certain types of entities or relations, which can be
-    1.  a dict like `{'user': True, 'repository': True, 'user_starred': True}`
-    2.  a string like `'user:0,repository:1,user_starred:0'`
+    1.  a dict like `{'user': True, 'repository': True, 'user_starred': True, '': False}`, using the empty key `''` to override all of the default policies
+    2.  a string like `'user:1,repository:1,:0,user_starred:1'`
 
 #### Multitask Spider Settings
  *  `start_repos` - initial repositories to crawl, which can be

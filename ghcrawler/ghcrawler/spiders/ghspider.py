@@ -99,6 +99,8 @@ class GitHubSpider(Spider):
         self.policy = self.default_policy.copy()
         policy = dict(self._parse_spider_option(policy, parser=_policy_parser))
         if policy is not None:
+            if '' in policy:
+                self.policy = dict.fromkeys(self.policy.iterkeys(), policy.pop(''))
             self.policy.update(policy)
 
     @classmethod
