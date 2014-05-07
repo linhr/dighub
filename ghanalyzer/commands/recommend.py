@@ -6,6 +6,7 @@ from ghanalyzer.algorithms.recommenders import (
     UserCFRecommender,
     ItemCFRecommender,
     NMFRecommender,
+    PersonalRankRecommender,
 )
 from ghanalyzer.evaluation.experiments import RecommenderTest
 from ghanalyzer.evaluation.metrics import iter_precision, iter_recall, average_metric
@@ -17,7 +18,7 @@ class Command(AnalyzerCommand):
 
     def define_arguments(self, parser):
         parser.add_argument('recommender',
-            choices=['Random', 'UserCF', 'ItemCF', 'NMF'])
+            choices=['Random', 'UserCF', 'ItemCF', 'NMF', 'RandomWalk'])
         parser.add_argument('-p', '--path', required=True)
         parser.add_argument('-f', '--format', choices=['json'], default='json')
         parser.add_argument('-o', '--output')
@@ -32,6 +33,8 @@ class Command(AnalyzerCommand):
         group = parser.add_argument_group('recommender parameters')
         group.add_argument('--neighbor-count', type=int, default=None)
         group.add_argument('--component-count', type=int, default=10)
+        group.add_argument('--alpha', type=float, default=0.85)
+        group.add_argument('--max-steps', type=int, default=10)
 
     def run(self, args):
         recommender = self._create_recommender(args)
@@ -59,6 +62,8 @@ class Command(AnalyzerCommand):
             return ItemCFRecommender(n_neighbors=args.neighbor_count)
         elif args.recommender == 'NMF':
             return NMFRecommender(n_components=args.component_count)
+        elif args.recommender == 'RandomWalk':
+            return PersonalRankRecommender(alpha=args.alpha, max_steps=args.max_steps)
 
     def _load_dataset(self, args):
         if args.format == 'json':
