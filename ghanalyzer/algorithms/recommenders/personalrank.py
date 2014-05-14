@@ -70,10 +70,7 @@ class PersonalRankRecommender(object):
                 rank = self._update_rank_cython(rank, user)
             else:
                 rank = self._update_rank(rank, user)
-
-        rank = {k: v for k, v in rank.iteritems() \
-            if isinstance(k, Repository) and k not in self.graph[user]}
-        return recommend_by_rank(rank, n)
+        return rank
 
     def _recommend_numpy(self, user, n, use_cython=True):
         u = self.node_indices[user]
@@ -84,14 +81,14 @@ class PersonalRankRecommender(object):
                 rank = self._update_rank_numpy_cython(rank, user)
             else:
                 rank = self._update_rank_numpy(rank, user)
-
-        rank = ((self.nodes[i], r) for i, r in enumerate(rank))
-        rank = {k: v for k, v in rank \
-            if isinstance(k, Repository) and k not in self.graph[user]}
-        return recommend_by_rank(rank, n)
+        rank = {self.nodes[i]: r for i, r in enumerate(rank)}
+        return rank
 
     def recommend(self, user, n, use_numpy=True, use_cython=True):
         if use_numpy:
-            return self._recommend_numpy(user, n, use_cython)
+            rank = self._recommend_numpy(user, n, use_cython)
         else:
-            return self._recommend(user, n, use_cython)
+            rank = self._recommend(user, n, use_cython)
+        rank = {k: v for k, v in rank.iteritems() \
+            if isinstance(k, Repository) and k not in self.graph[user]}
+        return recommend_by_rank(rank, n)
