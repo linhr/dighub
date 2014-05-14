@@ -35,6 +35,7 @@ class Command(AnalyzerCommand):
         group.add_argument('--component-count', type=int, default=10)
         group.add_argument('--alpha', type=float, default=0.85)
         group.add_argument('--max-steps', type=int, default=10)
+        group.add_argument('--graph-path', nargs='+', default=())
 
     def run(self, args):
         recommender = self._create_recommender(args)
@@ -55,19 +56,27 @@ class Command(AnalyzerCommand):
 
     def _create_recommender(self, args):
         if args.recommender == 'Random':
-            return RandomRecommender()
+            recommender = RandomRecommender()
         elif args.recommender == 'UserCF':
-            return UserCFRecommender(n_neighbors=args.neighbor_count)
+            recommender = UserCFRecommender(n_neighbors=args.neighbor_count)
         elif args.recommender == 'ItemCF':
-            return ItemCFRecommender(n_neighbors=args.neighbor_count)
+            recommender = ItemCFRecommender(n_neighbors=args.neighbor_count)
         elif args.recommender == 'NMF':
-            return NMFRecommender(n_components=args.component_count)
+            recommender = NMFRecommender(n_components=args.component_count)
         elif args.recommender == 'RandomWalk':
-            return PersonalRankRecommender(alpha=args.alpha, max_steps=args.max_steps)
+            recommender = PersonalRankRecommender(alpha=args.alpha, max_steps=args.max_steps)
+            recommender.add_other_graphs(*self._load_graphs(args))
+        return recommender
 
     def _load_dataset(self, args):
         if args.format == 'json':
             return read_json_graph(args.path)
+
+    def _load_graphs(self, args):
+        if not args.graph_path:
+            return []
+        if args.format == 'json':
+            return [read_json_graph(path) for path in args.graph_path]
 
     def _write_report(self, report, args):
         if not args.output:

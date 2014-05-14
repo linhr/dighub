@@ -17,15 +17,22 @@ class PersonalRankRecommender(object):
     def __init__(self, alpha, max_steps):
         self.alpha = float(alpha)
         self.max_steps = max_steps
+        self.other_graphs = []
+
+    def add_other_graphs(self, *graphs):
+        for graph in graphs:
+            self.other_graphs.append(graph)
 
     def train(self, graph):
-        self.graph = graph
-        self.nodes = graph.nodes()
+        self.graph = graph.copy()
+        for g in self.other_graphs:
+            self.graph.add_edges_from(g.edges_iter(data=True))
+        self.nodes = self.graph.nodes()
         self.size = len(self.nodes)
         self.node_indices = {n: i for i, n in enumerate(self.nodes)}
-        self.adjacency = nx.to_scipy_sparse_matrix(graph, nodelist=self.nodes,
+        self.adjacency = nx.to_scipy_sparse_matrix(self.graph, nodelist=self.nodes,
             weight=None, format='coo')
-        self.degrees = np.array([graph.degree(n) for n in self.nodes], dtype=np.int)
+        self.degrees = np.array([self.graph.degree(n) for n in self.nodes], dtype=np.int)
         self.row = self.adjacency.row.astype(np.int)
         self.col = self.adjacency.col.astype(np.int)
 
