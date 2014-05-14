@@ -6,7 +6,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 
 import ghanalyzer.models
-from ghanalyzer.models import Entity, Account, User, Organization, Repository
+from ghanalyzer.models import Entity, Account, User, Organization, Repository, Language
 from ghanalyzer.utils.jsonline import JsonLineData
 from ghanalyzer.io.items import load_accounts, load_repositories
 
@@ -100,6 +100,17 @@ def load_language_co_occurrence(path):
             for m, n in combinations(languages.keys(), 2):
                 graph.add_edge(m, n)
                 graph[m][n]['weight'] = graph[m][n].get('weight', 0) + 1
+    return graph
+
+def load_language_graph(path):
+    path = os.path.join(path, 'Languages.jsonl')
+    graph = nx.Graph()
+    with JsonLineData(path) as data:
+        for item in data:
+            repo = Repository(item['repo']['id'])
+            for k, v in item['languages'].iteritems():
+                language = Language(k)
+                graph.add_edge(repo, language, weight=v)
     return graph
 
 def _model_from_json(model):

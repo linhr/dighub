@@ -1,6 +1,6 @@
 
 __all__ = [
-    'Account', 'Repository', 'User', 'Organization',
+    'Account', 'Repository', 'User', 'Organization', 'Language',
 ]
 
 class Entity(object):
@@ -27,10 +27,10 @@ class Entity(object):
         return cmp(self._id, other._id)
 
     def __hash__(self):
-        return self._id
+        return hash(self._id)
 
     def __repr__(self):
-        return '%s(%d)' % (type(self).__name__, self._id)
+        return '%s(%s)' % (type(self).__name__, repr(self._id))
 
 
 class Account(Entity):
@@ -47,3 +47,7 @@ class User(Account):
 
 class Organization(Account):
     """organization"""
+
+
+class Language(Entity):
+    """repository language"""
