@@ -71,9 +71,11 @@ def load_graph(path, graph_type, item_filter=None):
         if item_filter is not None:
             data = (x for x in data if item_filter(x))
         for item in data:
-            head = item.pop(metadata['head']['name'])
+            head = item.pop(metadata['head']['name'], None)
+            tail = item.pop(metadata['tail']['name'], None)
+            if head is None or tail is None:
+                continue
             head = metadata['head']['class'](head['id'])
-            tail = item.pop(metadata['tail']['name'])
             tail = metadata['tail']['class'](tail['id'])
             graph.add_edge(tail, head, **item)
     return graph
