@@ -32,9 +32,10 @@ class PersonalRankRecommender(object):
         self.node_indices = {n: i for i, n in enumerate(self.nodes)}
         self.adjacency = nx.to_scipy_sparse_matrix(self.graph, nodelist=self.nodes,
             weight=None, format='coo')
-        self.degrees = np.array([self.graph.degree(n) for n in self.nodes], dtype=np.int)
+        self.degrees = np.array([self.graph.degree(n, weight=None) for n in self.nodes], dtype=np.int)
         self.row = self.adjacency.row.astype(np.int)
         self.col = self.adjacency.col.astype(np.int)
+        self.edge_weights = self.adjacency.data.astype(np.float)
 
     def _recommend_numpy(self, user, n):
         u = self.node_indices[user]
@@ -42,7 +43,7 @@ class PersonalRankRecommender(object):
         rank[u] = 1.0
         for _ in xrange(self.max_steps):
             rank = randomwalk.update_rank_numpy(rank, u,
-                self.degrees, self.row, self.col, self.alpha)
+                self.degrees, self.row, self.col, self.edge_weights, self.alpha)
         return rank
 
     def recommend(self, user, n):

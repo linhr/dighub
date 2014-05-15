@@ -8,6 +8,7 @@ def update_rank_numpy(
         np.ndarray[np.float_t, ndim=1] rank, int u,
         np.ndarray[np.int_t, ndim=1] degrees,
         np.ndarray[np.int_t, ndim=1] row, np.ndarray[np.int_t, ndim=1] col,
+        np.ndarray[np.float_t, ndim=1] edge_weights,
         float alpha):
     cdef int r = row.shape[0]
     cdef int c = col.shape[0]
@@ -17,7 +18,7 @@ def update_rank_numpy(
 
     for i in xrange(count):
         a, b = row[i], col[i]
-        updated[a] += alpha * rank[b] / degrees[b]
+        updated[a] += alpha * rank[b] * edge_weights[i] / degrees[b]
     updated[u] += 1 - alpha
     
     return updated
