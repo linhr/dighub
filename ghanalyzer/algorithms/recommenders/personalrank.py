@@ -36,24 +36,17 @@ class PersonalRankRecommender(object):
         self.row = self.adjacency.row.astype(np.int)
         self.col = self.adjacency.col.astype(np.int)
 
-    def _update_rank_numpy_cython(self, rank, user):
-        u = self.node_indices[user]
-        updated = np.zeros(rank.shape, dtype=np.float)
-        randomwalk.update_rank_numpy(rank, updated, u,
-            self.degrees, self.row, self.col, self.alpha)
-        return updated
-
     def _recommend_numpy(self, user, n):
         u = self.node_indices[user]
         rank = np.zeros((self.size,), dtype=np.float)
         rank[u] = 1.0
         for _ in xrange(self.max_steps):
-            rank = self._update_rank_numpy_cython(rank, user)
-        rank = {self.nodes[i]: r for i, r in enumerate(rank)}
+            rank = randomwalk.update_rank_numpy(rank, u,
+                self.degrees, self.row, self.col, self.alpha)
         return rank
 
     def recommend(self, user, n):
         rank = self._recommend_numpy(user, n)
-        rank = {k: v for k, v in rank.iteritems() \
+        rank = {k: v for k, v in izip(self.nodes, rank) \
             if isinstance(k, Repository) and k not in self.graph[user]}
         return recommend_by_rank(rank, n)
