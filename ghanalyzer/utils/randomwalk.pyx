@@ -4,14 +4,6 @@ import numpy as np
 cimport numpy as np
 
 
-def update_rank(object rank, object graph, object user, float alpha):
-    updated = defaultdict(float)
-    for node in graph:
-        for neighbor in graph[node]:
-            updated[node] += alpha * rank[neighbor] / len(graph[neighbor])
-    updated[user] += 1 - alpha
-    return updated
-
 def update_rank_numpy(
         np.ndarray[np.float_t, ndim=1] rank, np.ndarray[np.float_t, ndim=1] updated,
         int u, np.ndarray[np.int_t, ndim=1] degrees,
