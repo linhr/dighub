@@ -24,8 +24,9 @@ class PersonalRankRecommender(object):
             self.other_graphs.append(graph)
 
     def train(self, graph):
-        self.graph = graph.copy()
+        self.graph = graph.to_directed()
         for g in self.other_graphs:
+            g = g.to_directed()
             self.graph.add_edges_from(g.edges_iter(data=True))
         self.nodes = self.graph.nodes()
         self.size = len(self.nodes)
