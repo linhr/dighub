@@ -1,6 +1,7 @@
 from sklearn.decomposition import NMF
 
-from ghanalyzer.algorithms.graphs import AccountRepositoryBigraph
+from ghanalyzer.algorithms.graphs import Bigraph
+from ghanalyzer.models import User, Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 
 
@@ -9,9 +10,9 @@ class FactorizationRecommender(object):
         self.n_components = n_components
 
     def train(self, graph):
-        self.bigraph = AccountRepositoryBigraph(graph)
-        self.user_count = len(self.bigraph.accounts)
-        self.repo_count = len(self.bigraph.repos)
+        self.bigraph = Bigraph(graph, source_cls=User, target_cls=Repository)
+        self.user_count = len(self.bigraph.sources)
+        self.repo_count = len(self.bigraph.targets)
         self._train_model()
 
     def _train_model(self):
@@ -21,11 +22,11 @@ class FactorizationRecommender(object):
         return self.user_features[u, :].dot(self.repo_features[r, :].T)
 
     def recommend(self, user, n):
-        u = self.bigraph.account_indices[user]
+        u = self.bigraph.source_indices[user]
         rank = {}
-        candidates = set(self.bigraph.repos) - set(self.bigraph.graph.neighbors_iter(user))
+        candidates = set(self.bigraph.targets) - set(self.bigraph.graph.neighbors_iter(user))
         for repo in candidates:
-            r = self.bigraph.repo_indices[repo]
+            r = self.bigraph.target_indices[repo]
             rank[repo] = self._predict(u, r)
         return recommend_by_rank(rank, n)
 
