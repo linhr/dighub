@@ -8,14 +8,19 @@ from gensim.models.ldamodel import LdaModel
 from gensim.matutils import Sparse2Corpus
 
 
-class LanguagePCA(object):
-    def __init__(self, dataset, n_components='mle'):
+class LanguageVector(object):
+    def __init__(self, dataset):
         self.dataset = dataset
-        self.n_components = n_components
         self.vectorizer = DictVectorizer()
         self.samples = dataset.keys()
         self.features = self.vectorizer.fit_transform(dataset.values())
         self.features = normalize(self.features, norm='l1')
+
+
+class LanguagePCA(LanguageVector):
+    def __init__(self, dataset, n_components='mle'):
+        super(LanguagePCA, self).__init__(dataset)
+        self.n_components = n_components
         self.transformer = PCA(n_components=n_components)
         self.transformer.fit(self.features.toarray())
 
