@@ -19,7 +19,8 @@ class Command(AnalyzerCommand):
             show_fork=bool(args.show_fork))
 
         if args.type == 'lda':
-            analyzer = DescriptionLDA(descriptions, n_topics=args.topic_count)
+            analyzer = DescriptionLDA(descriptions, n_topics=args.topic_count,
+                vocabulary_size=args.vocabulary_size)
         elif args.type == 'nmf':
             analyzer = DescriptionNMF(descriptions, n_topics=args.topic_count,
                 vocabulary_size=args.vocabulary_size)
