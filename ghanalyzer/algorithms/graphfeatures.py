@@ -3,17 +3,21 @@ import networkx as nx
 
 from ghanalyzer.algorithms.features import LanguageVector
 from ghanalyzer.io import load_accounts, load_repositories, load_repository_languages
-from ghanalyzer.models import User, Repository
+from ghanalyzer.models import Entity, User, Repository
 
 
 class DummyFeature(object):
     feature_count = 0
+
+    def __init__(self, node_cls=Entity):
+        self.node_cls = node_cls
 
     def get_feature(self, node):
         return []
 
 
 class UserFeature(object):
+    node_cls = User
     keys = ['public_repos', 'public_gists', 'followers', 'following', 'hireable']
     feature_count = len(keys)
 
@@ -30,6 +34,7 @@ class UserFeature(object):
 
 
 class RepositoryFeature(object):
+    node_cls = Repository
     keys = ['fork', 'open_issues_count', 'has_wiki', 'has_downloads', 'forks_count',
         'has_issues', 'stargazers_count', 'size']
 
@@ -56,14 +61,13 @@ class RepositoryFeature(object):
 
 
 class BigraphEdgeFeature(object):
-    def __init__(self, graph, source_cls, target_cls,
-            source_extractor, target_extractor, weight_key=None):
+    def __init__(self, graph, source_extractor, target_extractor, weight_key=None):
         self.graph = graph
         self.weight_key = weight_key
-        self.source_cls = source_cls
-        self.target_cls = target_cls
         self.source_extractor = source_extractor
         self.target_extractor = target_extractor
+        self.source_cls = source_extractor.node_cls
+        self.target_cls = target_extractor.node_cls
         if weight_key is not None:
             self.edge_feature_count = 1
             self.get_edge_feature = self._get_edge_feature

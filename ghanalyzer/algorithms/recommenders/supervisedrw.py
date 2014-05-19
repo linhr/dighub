@@ -8,7 +8,7 @@ from scipy.optimize import fmin_l_bfgs_b
 from sklearn.preprocessing import normalize
 
 from ghanalyzer.algorithms.graphfeatures import UserFeature, RepositoryFeature, BigraphEdgeFeature
-from ghanalyzer.models import User, Repository
+from ghanalyzer.models import Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 
 
@@ -41,7 +41,6 @@ class SupervisedRWRecommender(object):
         self.row = self.adjacency.row.astype(np.int)
         self.col = self.adjacency.col.astype(np.int)
         self.feature_extractor = BigraphEdgeFeature(self.graph,
-            source_cls=User, target_cls=Repository,
             source_extractor=UserFeature(self.data_path),
             target_extractor=RepositoryFeature(self.data_path),
             weight_key=self.weight_key)
