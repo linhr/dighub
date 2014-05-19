@@ -3,13 +3,14 @@ from itertools import izip
 
 import numpy as np
 import networkx as nx
-from scipy.sparse import coo_matrix, dia_matrix
+from scipy.sparse import coo_matrix
 from scipy.optimize import fmin_l_bfgs_b
 from sklearn.preprocessing import normalize
 
 from ghanalyzer.algorithms.graphfeatures import UserFeature, RepositoryFeature, BigraphEdgeFeature
 from ghanalyzer.models import Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
+from ghanalyzer.utils import sparsetools
 
 
 def sigmoid(x):
@@ -63,26 +64,25 @@ class SupervisedRWRecommender(object):
         Q = Q.tolil()
         for i in xrange(self.N):
             Q[i, root] += self.alpha
-        return Q.tocsc()
+        return Q.tocoo()
 
     def _get_transition_probability_derivative(self, A, dA):
         coo = (self.row, self.col)
         shape = (self.N, self.N)
-        F = coo_matrix((A, coo), shape=shape).tocsr()
-        norm_F = dia_matrix((F.sum(axis=1).T, (0,)), shape=shape)
+        F = coo_matrix((A, coo), shape=shape)
+        norm_F = sparsetools.sum_coo_matrix_column(F)
+        denominator = 1.0 / np.power(norm_F, 2)
         
         dQ = np.empty((self.M,), dtype=object)
         for m in xrange(self.M):
-            dFm = coo_matrix((dA[:, m], coo), shape=shape).tocsr()
-            norm = dFm.sum(axis=1)
-            norm_dFm = dia_matrix((norm.T, (0,)), shape=shape)
-            denominator = 1.0 / np.power(norm, 2)
-            denominator = dia_matrix((denominator.T, (0,)), shape=shape)
+            dFm = coo_matrix((dA[:, m], coo), shape=shape)
+            norm_dFm = sparsetools.sum_coo_matrix_column(dFm)
             
-            dQ[m] = norm_F * dFm - norm_dFm * F
-            dQ[m] = denominator * dQ[m]
+            X = sparsetools.coo_matrix_scale_row(dFm, norm_F).data
+            Y = sparsetools.coo_matrix_scale_row(F, norm_dFm).data
+            dQ[m] = coo_matrix((X - Y, coo), shape=shape)
+            dQ[m] = sparsetools.coo_matrix_scale_row(dQ[m], denominator)
             dQ[m] *= 1 - self.alpha
-            dQ[m] = dQ[m].tocsc()
         
         return dQ
 
@@ -111,12 +111,11 @@ class SupervisedRWRecommender(object):
         shape = (self.N, self.N)
         dP = np.zeros((self.N, self.M))
         for m in xrange(self.M):
+            PdQ = sparsetools.vector_coo_matrix_multiply(P, dQ[m])
             converged, delta = False, 0.0
             for _ in xrange(self.max_steps):
-                diag_dP = dia_matrix((dP[:, m], (0,)), shape=shape)
-                diag_P = dia_matrix((P, (0,)), shape=shape)
-                dPm = diag_dP * Q + diag_P * dQ[m]
-                dPm = dPm.sum(axis=0)
+                dPQ = sparsetools.vector_coo_matrix_multiply(dP[:, m], Q)
+                dPm = dPQ + PdQ
                 converged, delta = self._converged(dP[:, m], dPm)
                 if converged:
                     break
