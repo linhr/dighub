@@ -6,6 +6,13 @@ from ghanalyzer.io import load_accounts, load_repositories, load_repository_lang
 from ghanalyzer.models import User, Repository
 
 
+class DummyFeature(object):
+    feature_count = 0
+
+    def get_feature(self, node):
+        return []
+
+
 class UserFeature(object):
     keys = ['public_repos', 'public_gists', 'followers', 'following', 'hireable']
     feature_count = len(keys)
