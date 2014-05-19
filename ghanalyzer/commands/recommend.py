@@ -7,6 +7,7 @@ from ghanalyzer.algorithms.recommenders import (
     ItemCFRecommender,
     NMFRecommender,
     PersonalRankRecommender,
+    SupervisedRWRecommender,
 )
 from ghanalyzer.evaluation.experiments import RecommenderTest
 from ghanalyzer.evaluation.metrics import iter_precision, iter_recall, average_metric
@@ -18,7 +19,7 @@ class Command(AnalyzerCommand):
 
     def define_arguments(self, parser):
         parser.add_argument('recommender',
-            choices=['Random', 'UserCF', 'ItemCF', 'NMF', 'RandomWalk'])
+            choices=['Random', 'UserCF', 'ItemCF', 'NMF', 'RandomWalk', 'SupervisedRW'])
         parser.add_argument('-p', '--path', required=True)
         parser.add_argument('-f', '--format', choices=['json'], default='json')
         parser.add_argument('-o', '--output')
@@ -35,6 +36,7 @@ class Command(AnalyzerCommand):
         group.add_argument('--component-count', type=int, default=10)
         group.add_argument('--alpha', type=float, default=0.85)
         group.add_argument('--max-steps', type=int, default=10)
+        group.add_argument('--data-path', default='')
         group.add_argument('--graph-path', nargs='+', default=())
 
     def run(self, args):
@@ -66,6 +68,9 @@ class Command(AnalyzerCommand):
         elif args.recommender == 'RandomWalk':
             recommender = PersonalRankRecommender(alpha=args.alpha, max_steps=args.max_steps)
             recommender.add_other_graphs(*self._load_graphs(args))
+        elif args.recommender == 'SupervisedRW':
+            recommender = SupervisedRWRecommender(data_path=args.data_path,
+                alpha=args.alpha, max_steps=args.max_steps)
         return recommender
 
     def _load_dataset(self, args):

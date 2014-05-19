@@ -5,3 +5,4 @@ from ghanalyzer.algorithms.recommenders.collaborativefiltering import (
 )
 from ghanalyzer.algorithms.recommenders.factorization import NMFRecommender
 from ghanalyzer.algorithms.recommenders.personalrank import PersonalRankRecommender
+from ghanalyzer.algorithms.recommenders.supervisedrw import SupervisedRWRecommender
