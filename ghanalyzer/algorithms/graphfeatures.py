@@ -54,7 +54,8 @@ class RepositoryFeature(object):
             self.repositories = defaultdict(dict)
         self.languages = load_repository_languages(data_path)
         self.languages = LanguageVector(self.languages)
-        self.language_feature_count = len(self.languages.vectorizer.get_feature_names())
+        self.language_features = self.languages.features.toarray()
+        self.language_feature_count = self.language_features.shape[1]
         self.feature_count = len(self.keys) + self.language_feature_count
 
     def get_feature(self, repo):
@@ -64,7 +65,7 @@ class RepositoryFeature(object):
         feature = [float(item.get(k) or 0) for k in self.keys]
         index = self.languages.sample_indices.get(repo.id, None)
         if index is not None:
-            feature.extend(self.languages.features[index, :].toarray()[0])
+            feature.extend(self.language_features[index, :])
         else:
             feature.extend([0.0] * self.language_feature_count)
         return feature
