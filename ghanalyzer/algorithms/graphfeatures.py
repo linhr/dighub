@@ -1,3 +1,5 @@
+from itertools import izip
+
 import numpy as np
 import networkx as nx
 
@@ -77,27 +79,38 @@ class BigraphEdgeFeature(object):
         self.feature_count = self.source_extractor.feature_count + \
             self.target_extractor.feature_count + self.edge_feature_count + 1
 
-    def _get_edge_feature(self, u, v, d):
-        return [d.get(self.weight_key, 1)]
+        self._create_graph_matrix()
+        self._create_feature_matrix()
 
-    def _get_empty_edge_feature(self, u, v, d):
+
+    def _get_edge_feature(self, u, v):
+        return [self.graph[u][v].get(self.weight_key, 1)]
+
+    def _get_empty_edge_feature(self, u, v):
         return []
 
-    def get_feature_matrix(self, ebunch):
-        ebunch = list(ebunch)
-        size = len(ebunch)
-        F = np.zeros((size, self.feature_count))
-        for i, (u, v, d) in enumerate(ebunch):
+    def _create_graph_matrix(self):
+        self.nodes = self.graph.nodes()
+        self.node_indices = {n: i for i, n in enumerate(self.nodes)}
+        self.adjacency = nx.to_scipy_sparse_matrix(self.graph, nodelist=self.nodes,
+            weight=self.weight_key, format='coo')
+        self.row = self.adjacency.row.astype(np.int)
+        self.col = self.adjacency.col.astype(np.int)
+
+    def _create_feature_matrix(self):
+        size = self.adjacency.data.size
+        self.features = np.zeros((size, self.feature_count))
+        for i, (r, c) in enumerate(izip(self.row, self.col)):
+            u, v = self.nodes[r], self.nodes[c]
             if not isinstance(u, self.source_cls):
                 u, v = v, u
             if not isinstance(u, self.source_cls) or not isinstance(v, self.target_cls):
                 continue
             source_feature = self.source_extractor.get_feature(u)
             target_feature = self.target_extractor.get_feature(v)
-            edge_feature = self.get_edge_feature(u, v, d)
+            edge_feature = self.get_edge_feature(u, v)
             feature = [1]  # include constant feature
             feature.extend(source_feature)
             feature.extend(target_feature)
             feature.extend(edge_feature)
-            F[i, :] = feature
-        return F
+            self.features[i, :] = feature

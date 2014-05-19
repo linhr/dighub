@@ -26,25 +26,18 @@ class SupervisedRWRecommender(object):
         self.loss_width = float(loss_width)
         self.weight_key = weight_key
 
-    def _iter_edges(self):
-        for r, c in izip(self.row, self.col):
-            u, v = self.nodes[r], self.nodes[c]
-            yield u, v, self.graph[u][v]
-
     def train(self, graph):
         self.graph = graph
         self.candidates = [n for n in self.graph if isinstance(n, Repository)]
-        self.nodes = self.graph.nodes()
-        self.node_indices = {n: i for i, n in enumerate(self.nodes)}
-        self.adjacency = nx.to_scipy_sparse_matrix(self.graph, nodelist=self.nodes,
-            weight=self.weight_key, format='coo')
-        self.row = self.adjacency.row.astype(np.int)
-        self.col = self.adjacency.col.astype(np.int)
         self.feature_extractor = BigraphEdgeFeature(self.graph,
             source_extractor=UserFeature(self.data_path),
             target_extractor=RepositoryFeature(self.data_path),
             weight_key=self.weight_key)
-        self.features = self.feature_extractor.get_feature_matrix(self._iter_edges())
+        self.nodes = self.feature_extractor.nodes
+        self.node_indices = self.feature_extractor.node_indices
+        self.row = self.feature_extractor.row
+        self.col = self.feature_extractor.col
+        self.features = self.feature_extractor.features
         self.N = len(self.nodes)
         self.E, self.M = self.features.shape
 
