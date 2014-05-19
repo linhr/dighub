@@ -30,8 +30,8 @@ class SupervisedRWRecommender(object):
         self.graph = graph
         self.candidates = [n for n in self.graph if isinstance(n, Repository)]
         self.feature_extractor = BigraphEdgeFeature(self.graph,
-            source_extractor=UserFeature(self.data_path),
-            target_extractor=RepositoryFeature(self.data_path),
+            source_extractor=UserFeature(self.graph, self.data_path),
+            target_extractor=RepositoryFeature(self.graph, self.data_path),
             weight_key=self.weight_key)
         self.nodes = self.feature_extractor.nodes
         self.node_indices = self.feature_extractor.node_indices

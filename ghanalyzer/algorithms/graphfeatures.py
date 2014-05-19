@@ -1,4 +1,5 @@
 from itertools import izip
+from collections import defaultdict
 
 import numpy as np
 import networkx as nx
@@ -23,14 +24,18 @@ class UserFeature(object):
     keys = ['public_repos', 'public_gists', 'followers', 'following', 'hireable']
     feature_count = len(keys)
 
-    def __init__(self, data_path):
+    def __init__(self, graph, data_path, load_entity_data=False):
+        self.graph = graph
         self.data_path = data_path
-        self.accounts = load_accounts(data_path)
+        if load_entity_data:
+            self.accounts = load_accounts(data_path)
+        else:
+            self.accounts = defaultdict(dict)
 
     def get_feature(self, user):
-        if user.id not in self.accounts:
-            return [0.0] * len(self.keys)
         item = self.accounts[user.id]
+        if user in self.graph:
+            item.update(self.graph.node[user])
         feature = [float(item.get(k) or 0) for k in self.keys]
         return feature
 
@@ -40,20 +45,23 @@ class RepositoryFeature(object):
     keys = ['fork', 'open_issues_count', 'has_wiki', 'has_downloads', 'forks_count',
         'has_issues', 'stargazers_count', 'size']
 
-    def __init__(self, data_path):
+    def __init__(self, graph, data_path, load_entity_data=False):
+        self.graph = graph
         self.data_path = data_path
-        self.repositories = load_repositories(data_path)
+        if load_entity_data:
+            self.repositories = load_repositories(data_path)
+        else:
+            self.repositories = defaultdict(dict)
         self.languages = load_repository_languages(data_path)
         self.languages = LanguageVector(self.languages)
         self.language_feature_count = len(self.languages.vectorizer.get_feature_names())
         self.feature_count = len(self.keys) + self.language_feature_count
 
     def get_feature(self, repo):
-        if repo.id in self.repositories:
-            item = self.repositories[repo.id]
-            feature = [float(item.get(k) or 0) for k in self.keys]
-        else:
-            feature = [0.0] * len(self.keys)
+        item = self.repositories[repo.id]
+        if repo in self.graph:
+            item.update(self.graph.node[repo])
+        feature = [float(item.get(k) or 0) for k in self.keys]
         index = self.languages.sample_indices.get(repo.id, None)
         if index is not None:
             feature.extend(self.languages.features[index, :].toarray()[0])
