@@ -1,19 +1,34 @@
 import os.path
+from collections import defaultdict
 
 from ghanalyzer.utils.jsonline import JsonLineData
 
-def _load_entities(path, filename):
-    path = os.path.join(path, filename)
-    with JsonLineData(path) as data:
-        return {item.get('id'): item for item in data}
+def _load_datasets(path, *filenames):
+    dataset = defaultdict(dict)
+    for filename in filenames:
+        data_path = os.path.join(path, filename)
+        with JsonLineData(data_path) as data:
+            for item in data:
+                id_ = item.get('id')
+                if id_ is None:
+                    continue
+                dataset[id_].update(item)
+    return dataset
 
-def load_repositories(path, summary=True):
-    filename = 'RepositorySummary.jsonl' if summary else 'Repository.jsonl'
-    return _load_entities(path, filename)
+def _load_entities(path, type_, summary=None):
+    filenames = (type_ + '.jsonl', type_ + 'Summary.jsonl')
+    if summary is None:
+        return _load_datasets(path, *filenames)
+    if summary:
+        return _load_datasets(path, filenames[1])
+    else:
+        return _load_datasets(path, filenames[0])
 
-def load_accounts(path, summary=True):
-    filename = 'AccountSummary.jsonl' if summary else 'Account.jsonl'
-    return _load_entities(path, filename)
+def load_repositories(path, summary=None):
+    return _load_entities(path, 'Repository', summary=summary)
+
+def load_accounts(path, summary=None):
+    return _load_entities(path, 'Account', summary=summary)
 
 def load_repository_languages(path):
     path = os.path.join(path, 'Languages.jsonl')

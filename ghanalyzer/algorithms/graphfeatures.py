@@ -23,7 +23,7 @@ class UserFeature(object):
 
     def __init__(self, data_path):
         self.data_path = data_path
-        self.accounts = load_accounts(data_path, summary=False)
+        self.accounts = load_accounts(data_path)
 
     def get_feature(self, user):
         if user.id not in self.accounts:
@@ -40,7 +40,7 @@ class RepositoryFeature(object):
 
     def __init__(self, data_path):
         self.data_path = data_path
-        self.repositories = load_repositories(data_path, summary=True)
+        self.repositories = load_repositories(data_path)
         self.languages = load_repository_languages(data_path)
         self.languages = LanguageVector(self.languages)
         self.language_feature_count = len(self.languages.vectorizer.get_feature_names())

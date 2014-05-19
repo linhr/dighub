@@ -88,7 +88,7 @@ def load_node_attributes(path, graph):
             graph.node[n].update(repos[n.id])
         elif isinstance(n, Account):
             graph.node[n].update(accounts[n.id])
-        graph.node[n].pop('id')
+        graph.node[n].pop('id', None)
 
 def load_language_co_occurrence(path):
     path = os.path.join(path, 'Languages.jsonl')
