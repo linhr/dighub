@@ -28,7 +28,7 @@ class SupervisedRWRecommender(object):
         self.weight_key = weight_key
 
     def train(self, graph):
-        self.graph = graph
+        self.graph = graph.to_directed()
         self.candidates = [n for n in self.graph if isinstance(n, Repository)]
         self.feature_extractor = BigraphEdgeFeature(self.graph,
             source_extractor=UserFeature(self.graph, self.data_path),
@@ -95,8 +95,7 @@ class SupervisedRWRecommender(object):
         P.fill(1.0 / self.N)
         converged, delta = False, 0.0
         for _ in xrange(self.max_steps):
-            P1 = Q.T.dot(P.T).T
-            P1 /= P1.sum()
+            P1 = sparsetools.vector_csr_matrix_multiply(P, Q)
             converged, delta = self._converged(P, P1)
             if converged:
                 break
