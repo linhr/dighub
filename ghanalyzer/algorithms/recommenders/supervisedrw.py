@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 from scipy.sparse import coo_matrix
 from scipy.optimize import fmin_l_bfgs_b
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import normalize, StandardScaler
 
 from ghanalyzer.algorithms.graphfeatures import UserFeature, RepositoryFeature, BigraphEdgeFeature
 from ghanalyzer.models import Repository
@@ -39,6 +39,7 @@ class SupervisedRWRecommender(object):
         self.row = self.feature_extractor.row
         self.col = self.feature_extractor.col
         self.features = self.feature_extractor.features
+        self.features = StandardScaler().fit_transform(self.features)
         self.N = len(self.nodes)
         self.E, self.M = self.features.shape
 
@@ -72,7 +73,7 @@ class SupervisedRWRecommender(object):
         F = coo_matrix((A, coo), shape=shape)
         norm_F = sparsetools.sum_coo_matrix_column(F)
         denominator = 1.0 / np.power(norm_F, 2)
-        
+
         dQ = np.empty((self.M,), dtype=object)
         for m in xrange(self.M):
             dFm = coo_matrix((dA[:, m], coo), shape=shape)
@@ -83,7 +84,7 @@ class SupervisedRWRecommender(object):
             dQ[m] = coo_matrix((X - Y, coo), shape=shape)
             dQ[m] = sparsetools.coo_matrix_scale_row(dQ[m], denominator)
             dQ[m] *= 1 - self.alpha
-        
+
         return dQ
 
     def _converged(self, X1, X2):
@@ -122,7 +123,7 @@ class SupervisedRWRecommender(object):
                 dP[:, m] = dPm
             if not converged:
                 print 'Warning: stationary distribution derivative does not converge ' \
-                    'in %d iteration(s) (delta=%f)' % (self.max_steps, delta)
+                    'in %d iteration(s) (delta=%f, m=%d)' % (self.max_steps, delta, m)
         return dP
 
     def _loss_function(self, w, root, pairs):
@@ -141,7 +142,7 @@ class SupervisedRWRecommender(object):
             dpairs[i, :] = dP[u, :] - dP[v, :]
         gradient = 2 * w + np.einsum('i,im->m', ddiff, dpairs) * self.lambda_
         return objective, gradient
-    
+
     def _select_samples(self, user):
         positive = self.graph.neighbors(user)
         others = set(self.candidates) - set(positive)
