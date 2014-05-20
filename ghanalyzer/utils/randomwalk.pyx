@@ -18,7 +18,7 @@ def update_rank_numpy(
 
     for i in xrange(count):
         a, b = row[i], col[i]
-        updated[a] += alpha * rank[b] * edge_weights[i] / degrees[b]
+        updated[b] += alpha * rank[a] * edge_weights[i] / degrees[a]
     updated[u] += 1 - alpha
     
     return updated
