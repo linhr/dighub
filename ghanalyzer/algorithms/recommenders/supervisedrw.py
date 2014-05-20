@@ -3,7 +3,7 @@ from itertools import izip
 
 import numpy as np
 import networkx as nx
-from scipy.sparse import coo_matrix
+from scipy.sparse import csr_matrix
 from scipy.optimize import fmin_l_bfgs_b
 from sklearn.preprocessing import normalize, StandardScaler
 
@@ -36,8 +36,8 @@ class SupervisedRWRecommender(object):
             weight_key=self.weight_key)
         self.nodes = self.feature_extractor.nodes
         self.node_indices = self.feature_extractor.node_indices
-        self.row = self.feature_extractor.row
-        self.col = self.feature_extractor.col
+        self.indices = self.feature_extractor.indices
+        self.indptr = self.feature_extractor.indptr
         self.features = self.feature_extractor.features
         self.features = StandardScaler().fit_transform(self.features)
         self.N = len(self.nodes)
@@ -49,6 +49,9 @@ class SupervisedRWRecommender(object):
             if isinstance(k, Repository) and k not in self.graph[user]}
         return recommend_by_rank(rank, n)
 
+    def _csr_from_data(self, data):
+        return csr_matrix((data, self.indices, self.indptr), shape=(self.N, self.N))
+
     def _get_edge_strength(self, w):
         S = np.einsum('ij,j->i', self.features, w)
         A = sigmoid(S)
@@ -57,33 +60,28 @@ class SupervisedRWRecommender(object):
         return A, dA
 
     def _get_transition_probability(self, A, root):
-        coo = (self.row, self.col)
-        shape = (self.N, self.N)
-        Q = coo_matrix((A, coo), shape=shape)
+        Q = self._csr_from_data(A)
         Q = normalize(Q, norm='l1')
         Q *= 1 - self.alpha
         Q = Q.tolil()
         for i in xrange(self.N):
             Q[i, root] += self.alpha
-        return Q.tocoo()
+        return Q.tocsr()
 
     def _get_transition_probability_derivative(self, A, dA):
-        coo = (self.row, self.col)
-        shape = (self.N, self.N)
-        F = coo_matrix((A, coo), shape=shape)
-        norm_F = sparsetools.sum_coo_matrix_column(F)
-        denominator = 1.0 / np.power(norm_F, 2)
+        F = self._csr_from_data(A)
+        norm_F = sparsetools.sum_csr_matrix_column(F)
+        denominator = (1.0 - self.alpha) / np.power(norm_F, 2)
 
         dQ = np.empty((self.M,), dtype=object)
         for m in xrange(self.M):
-            dFm = coo_matrix((dA[:, m], coo), shape=shape)
-            norm_dFm = sparsetools.sum_coo_matrix_column(dFm)
+            dFm = self._csr_from_data(dA[:, m])
+            norm_dFm = sparsetools.sum_csr_matrix_column(dFm)
             
-            X = sparsetools.coo_matrix_scale_row(dFm, norm_F).data
-            Y = sparsetools.coo_matrix_scale_row(F, norm_dFm).data
-            dQ[m] = coo_matrix((X - Y, coo), shape=shape)
-            dQ[m] = sparsetools.coo_matrix_scale_row(dQ[m], denominator)
-            dQ[m] *= 1 - self.alpha
+            X = sparsetools.csr_matrix_scale_row(dFm, norm_F).data
+            Y = sparsetools.csr_matrix_scale_row(F, norm_dFm).data
+            dQ[m] = self._csr_from_data(X - Y)
+            sparsetools.csr_matrix_scale_row(dQ[m], denominator, inplace=True)
 
         return dQ
 
@@ -112,10 +110,10 @@ class SupervisedRWRecommender(object):
         shape = (self.N, self.N)
         dP = np.zeros((self.N, self.M))
         for m in xrange(self.M):
-            PdQ = sparsetools.vector_coo_matrix_multiply(P, dQ[m])
+            PdQ = sparsetools.vector_csr_matrix_multiply(P, dQ[m])
             converged, delta = False, 0.0
             for _ in xrange(self.max_steps):
-                dPQ = sparsetools.vector_coo_matrix_multiply(dP[:, m], Q)
+                dPQ = sparsetools.vector_csr_matrix_multiply(dP[:, m], Q)
                 dPm = dPQ + PdQ
                 converged, delta = self._converged(dP[:, m], dPm)
                 if converged:

@@ -1,4 +1,3 @@
-from itertools import izip
 from collections import defaultdict
 
 import numpy as np
@@ -102,15 +101,20 @@ class BigraphEdgeFeature(object):
         self.nodes = self.graph.nodes()
         self.node_indices = {n: i for i, n in enumerate(self.nodes)}
         self.adjacency = nx.to_scipy_sparse_matrix(self.graph, nodelist=self.nodes,
-            weight=self.weight_key, format='coo')
-        self.row = self.adjacency.row.astype(np.int)
-        self.col = self.adjacency.col.astype(np.int)
+            weight=self.weight_key, format='csr')
+        self.indices = self.adjacency.indices
+        self.indptr = self.adjacency.indptr
+
+    def _iter_edges(self):
+        for r in xrange(len(self.nodes)):
+            for i in xrange(self.indptr[r], self.indptr[r+1]):
+                c = self.indices[i]
+                yield self.nodes[r], self.nodes[c]
 
     def _create_feature_matrix(self):
         size = self.adjacency.data.size
         self.features = np.zeros((size, self.feature_count))
-        for i, (r, c) in enumerate(izip(self.row, self.col)):
-            u, v = self.nodes[r], self.nodes[c]
+        for i, (u, v) in enumerate(self._iter_edges()):
             if not isinstance(u, self.source_cls):
                 u, v = v, u
             if not isinstance(u, self.source_cls) or not isinstance(v, self.target_cls):
