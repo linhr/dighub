@@ -59,14 +59,14 @@ class SupervisedRWRecommender(object):
         dA = dA[:, np.newaxis] * self.features
         return A, dA
 
-    def _get_transition_probability(self, A, root):
-        Q = self._csr_from_data(A)
-        Q = normalize(Q, norm='l1')
-        Q *= 1 - self.alpha
-        Q = Q.tolil()
-        for i in xrange(self.N):
-            Q[i, root] += self.alpha
-        return Q.tocsr()
+    def _get_transition_probability(self, A):
+        """calculate unbiased transition probability matrix Q0 such that
+        Q = (1 - alpha) * Q0 + alpha * E_root
+        where E_root is a matrix containing 1 in the root node's column and 0 elsewhere
+        """
+        Q0 = self._csr_from_data(A)
+        Q0 = normalize(Q0, norm='l1')
+        return Q0
 
     def _get_transition_probability_derivative(self, A, dA):
         F = self._csr_from_data(A)
@@ -90,12 +90,14 @@ class SupervisedRWRecommender(object):
         delta = np.max(delta)
         return delta < self.epsilon, delta
 
-    def _get_stationary_distribution(self, Q):
+    def _get_stationary_distribution(self, Q0, root):
         P = np.empty((self.N,))
         P.fill(1.0 / self.N)
         converged, delta = False, 0.0
         for _ in xrange(self.max_steps):
-            P1 = sparsetools.vector_csr_matrix_multiply(P, Q)
+            P1 = sparsetools.vector_csr_matrix_multiply(P, Q0)
+            P1 *= 1 - self.alpha
+            P1[root] += self.alpha
             converged, delta = self._converged(P, P1)
             if converged:
                 break
@@ -105,14 +107,16 @@ class SupervisedRWRecommender(object):
                 'in %d iteration(s) (delta=%f)' % (self.max_steps, delta)
         return P
 
-    def _get_stationary_distribution_derivative(self, P, Q, dQ):
+    def _get_stationary_distribution_derivative(self, P, Q0, dQ, root):
         shape = (self.N, self.N)
         dP = np.zeros((self.N, self.M))
         for m in xrange(self.M):
             PdQ = sparsetools.vector_csr_matrix_multiply(P, dQ[m])
             converged, delta = False, 0.0
             for _ in xrange(self.max_steps):
-                dPQ = sparsetools.vector_csr_matrix_multiply(dP[:, m], Q)
+                dPQ = sparsetools.vector_csr_matrix_multiply(dP[:, m], Q0)
+                dPQ *= 1 - self.alpha
+                dPQ[root] += self.alpha * dP[:, m].sum()
                 dPm = dPQ + PdQ
                 converged, delta = self._converged(dP[:, m], dPm)
                 if converged:
@@ -125,10 +129,10 @@ class SupervisedRWRecommender(object):
 
     def _loss_function(self, w, root, pairs):
         A, dA = self._get_edge_strength(w)
-        Q = self._get_transition_probability(A, root)
+        Q0 = self._get_transition_probability(A)
         dQ = self._get_transition_probability_derivative(A, dA)
-        P = self._get_stationary_distribution(Q)
-        dP = self._get_stationary_distribution_derivative(P, Q, dQ)
+        P = self._get_stationary_distribution(Q0, root)
+        dP = self._get_stationary_distribution_derivative(P, Q0, dQ, root)
 
         diff = np.array([P[u] - P[v] for u, v in pairs])
         loss = sigmoid(diff / self.loss_width)
@@ -156,6 +160,6 @@ class SupervisedRWRecommender(object):
         w0 = np.random.rand(self.M)
         w, _, _ = fmin_l_bfgs_b(self._loss_function, w0, args=(u, pairs), iprint=0)
         A, _ = self._get_edge_strength(w)
-        Q = self._get_transition_probability(A, u)
-        P = self._get_stationary_distribution(Q)
+        Q0 = self._get_transition_probability(A)
+        P = self._get_stationary_distribution(Q0, u)
         return P
