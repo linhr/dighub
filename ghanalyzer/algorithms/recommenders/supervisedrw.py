@@ -55,8 +55,9 @@ class SupervisedRWRecommender(object):
     def _get_edge_strength(self, w):
         S = np.einsum('ij,j->i', self.features, w)
         A = sigmoid(S)
-        dA = A * (1 - A)
-        dA = dA[:, np.newaxis] * self.features
+        dA = np.empty((self.E, self.M), order='F')
+        derivative = A * (1 - A)
+        np.multiply(derivative[:, np.newaxis], self.features, out=dA)
         return A, dA
 
     def _get_transition_probability(self, A):
@@ -109,7 +110,7 @@ class SupervisedRWRecommender(object):
 
     def _get_stationary_distribution_derivative(self, P, Q0, dQ, root):
         shape = (self.N, self.N)
-        dP = np.zeros((self.N, self.M))
+        dP = np.zeros((self.N, self.M), order='F')
         for m in xrange(self.M):
             PdQ = sparsetools.vector_csr_matrix_multiply(P, dQ[m])
             converged, delta = False, 0.0
