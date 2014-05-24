@@ -18,56 +18,63 @@ class DummyFeature(object):
         return []
 
 
-class UserFeature(object):
-    node_cls = User
-    keys = ['public_repos', 'public_gists', 'followers', 'following', 'hireable']
-    feature_count = len(keys)
+class NodeFeature(object):
+    node_cls = Entity
+    keys = []
 
     def __init__(self, graph, data_path, load_entity_data=False):
         self.graph = graph
         self.data_path = data_path
+        self.feature_count = len(self.keys)
         if load_entity_data:
-            self.accounts = load_accounts(data_path)
+            self.entities = self.load_entities()
         else:
-            self.accounts = defaultdict(dict)
+            self.entities = defaultdict(dict)
 
-    def get_feature(self, user):
-        item = self.accounts[user.id]
-        if user in self.graph:
-            item.update(self.graph.node[user])
+    def load_entities(self):
+        return defaultdict(dict)
+
+    def get_feature(self, n):
+        item = self.entities[n.id]
+        if n in self.graph:
+            item.update(self.graph.node[n])
         feature = [float(item.get(k) or 0) for k in self.keys]
         return feature
 
 
-class RepositoryFeature(object):
+class UserFeature(NodeFeature):
+    node_cls = User
+    keys = ['public_repos', 'public_gists', 'followers', 'following', 'hireable']
+
+    def load_entities(self):
+        return load_accounts(self.data_path)
+
+
+class RepositoryFeature(NodeFeature):
     node_cls = Repository
     keys = ['fork', 'open_issues_count', 'has_wiki', 'has_downloads', 'forks_count',
         'has_issues', 'stargazers_count', 'size']
 
-    def __init__(self, graph, data_path, load_entity_data=False):
-        self.graph = graph
+    def load_entities(self):
+        return load_repositories(self.data_path)
+
+
+class LanguageFeature(object):
+    node_cls = Repository
+
+    def __init__(self, data_path):
         self.data_path = data_path
-        if load_entity_data:
-            self.repositories = load_repositories(data_path)
-        else:
-            self.repositories = defaultdict(dict)
         self.languages = load_repository_languages(data_path)
         self.languages = LanguageVector(self.languages)
-        self.language_features = self.languages.features.toarray()
-        self.language_feature_count = self.language_features.shape[1]
-        self.feature_count = len(self.keys) + self.language_feature_count
+        self.features = self.languages.features.toarray()
+        self.feature_count = self.features.shape[1]
 
     def get_feature(self, repo):
-        item = self.repositories[repo.id]
-        if repo in self.graph:
-            item.update(self.graph.node[repo])
-        feature = [float(item.get(k) or 0) for k in self.keys]
         index = self.languages.sample_indices.get(repo.id, None)
         if index is not None:
-            feature.extend(self.language_features[index, :])
+            return list(self.features[index, :])
         else:
-            feature.extend([0.0] * self.language_feature_count)
-        return feature
+            return [0.0] * self.feature_count
 
 
 class BigraphEdgeFeature(object):
