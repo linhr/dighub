@@ -49,11 +49,14 @@ class RecommenderTest(object):
                 print 'Generating recommendation for user %d...' % i
             recommendation.append({
                 'user': user,
+                'training': self.train_graph.neighbors(user),
                 'recommended': self.recommender.recommend(user, self.n_recommendations),
                 'groundtruth': self.test_graph.neighbors(user),
             })
 
         self.report.update({
+            'users': users,
+            'repos': repos,
             'user_count': len(users),
             'repo_count': len(repos),
             'recommendation': recommendation,

@@ -10,7 +10,7 @@ from ghanalyzer.algorithms.recommenders import (
     SupervisedRWRecommender,
 )
 from ghanalyzer.evaluation.experiments import RecommenderTest
-from ghanalyzer.evaluation.metrics import iter_precision, iter_recall, average_metric
+from ghanalyzer.evaluation.metrics import get_frequencies, precision_recall_curve
 
 
 class Command(AnalyzerCommand):
@@ -51,8 +51,10 @@ class Command(AnalyzerCommand):
         test.report['name'] = args.recommender
         self._write_report(test.report, args)
         
-        print 'Precision: %f' % average_metric(iter_precision(test.report))
-        print 'Recall: %f' % average_metric(iter_recall(test.report))
+        frequencies = get_frequencies(test.report)
+        precision, recall = precision_recall_curve(frequencies)
+        print 'Precision: %f' % precision
+        print 'Recall: %f' % recall
 
         return {'graph': graph, 'recommender': recommender, 'test': test}
 
