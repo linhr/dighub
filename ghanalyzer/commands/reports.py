@@ -40,7 +40,7 @@ class Command(AnalyzerCommand):
     def show_metrics(self, reports, ranks):
         for i, report in enumerate(reports):
             frequencies = get_frequencies(report, cutoff=ranks)
-            map_ = get_mean_average_precision(frequencies)
+            map_ = get_mean_average_precision(report)
             auc = get_roc_auc(frequencies)
             name = report.get('name', '?')
             print 'Test %d: name=%s, MAP=%f, AUC=%f' % (i+1, name, map_, auc)

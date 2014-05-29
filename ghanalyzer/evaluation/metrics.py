@@ -65,28 +65,25 @@ def roc_curve(frequencies):
     fallout = nanmean(get_fallout(frequencies), axis=0)
     return sensitivity, fallout
 
-def get_average_precision(frequencies, degree=3):
-    if frequencies.ndim == 2 or frequencies.shape[1] <= degree:
-        raise ValueError('more data points are needed to interpolate precision-recall curve')
-    precision = get_precision(frequencies)
-    recall = get_recall(frequencies)
-    case_count = frequencies.shape[0]
+def get_average_precision(report):
+    case_count = len(report['recommendation'])
     average_precision = np.empty((case_count,))
-    for i in xrange(case_count):
-        x = recall[i, :]
-        y = precision[i, :]
-        if 0.0 not in x:
-            x = np.append(x, 0.0)
-            y = np.append(y, 0.0)
-        try:
-            f = InterpolatedUnivariateSpline(x, y, k=degree)
-            average_precision[i], _ = quad(f, 0.0, 1.0)
-        except:
-            average_precision[i] = np.nan
+    average_precision.fill(np.nan)
+    for i, x in enumerate(report['recommendation']):
+        groundtruth = x['groundtruth']
+        recommended = x['recommended']
+        if not groundtruth:
+            continue
+        counter, true_positive = 0.0, 0
+        for k, r in enumerate(recommended):
+            if r in groundtruth:
+                true_positive += 1
+                counter += float(true_positive) / (k + 1)
+        average_precision[i] = float(counter) / len(groundtruth)
     return average_precision
 
-def get_mean_average_precision(frequencies, degree=3):
-    average_precision = get_average_precision(frequencies, degree=degree)
+def get_mean_average_precision(report):
+    average_precision = get_average_precision(report)
     return nanmean(average_precision)
 
 def get_roc_auc(frequencies, degree=3):
