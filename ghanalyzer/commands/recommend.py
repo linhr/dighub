@@ -35,6 +35,10 @@ class Command(AnalyzerCommand):
         group.add_argument('--neighbor-count', type=int, default=None)
         group.add_argument('--component-count', type=int, default=10)
         group.add_argument('--alpha', type=float, default=0.85)
+        group.add_argument('--lambda-w', type=float, default=0.01)
+        group.add_argument('--epsilon', type=float, default=0.01)
+        group.add_argument('--loss-width', type=float, default=1.0)
+        group.add_argument('--weight-key', default=None)
         group.add_argument('--max-steps', type=int, default=10)
         group.add_argument('--data-path', default='')
         group.add_argument('--graph-path', nargs='+', default=())
@@ -72,7 +76,9 @@ class Command(AnalyzerCommand):
             recommender.add_other_graphs(*self._load_graphs(args))
         elif args.recommender == 'SupervisedRW':
             recommender = SupervisedRWRecommender(data_path=args.data_path,
-                alpha=args.alpha, max_steps=args.max_steps)
+                alpha=args.alpha, max_steps=args.max_steps, lambda_=args.lambda_w,
+                epsilon=args.epsilon, loss_width=args.loss_width,
+                weight_key=args.weight_key)
         return recommender
 
     def _load_dataset(self, args):
