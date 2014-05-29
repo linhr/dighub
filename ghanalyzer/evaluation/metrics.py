@@ -1,6 +1,4 @@
 import numpy as np
-from scipy.integrate import quad
-from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import nanmean
 
 
@@ -86,25 +84,15 @@ def get_mean_average_precision(report):
     average_precision = get_average_precision(report)
     return nanmean(average_precision)
 
-def get_roc_auc(frequencies, degree=3):
-    if frequencies.ndim == 2 or frequencies.shape[1] <= degree:
-        raise ValueError('more data points are needed to interpolate ROC curve')
-    sensitivity = get_sensitivity(frequencies)
-    fallout = get_fallout(frequencies)
-    case_count = frequencies.shape[0]
-    auc = np.empty((case_count,))
-    for i in xrange(case_count):
-        x = fallout[i, :]
-        y = sensitivity[i, :]
-        if 0.0 not in x:
-            x = np.append(x, 0.0)
-            y = np.append(y, 0.0)
-        if 1.0 not in x:
-            x = np.append(x, 1.0)
-            y = np.append(y, 1.0)
-        try:
-            f = InterpolatedUnivariateSpline(x, y, k=degree)
-            auc[i], _ = quad(f, 0.0, 1.0)
-        except:
-            auc[i] = np.nan
-    return nanmean(auc)
+def get_roc_auc(frequencies):
+    y, x = sensitivity, fallout = roc_curve(frequencies)
+    if 0.0 not in x:
+        x = np.append(x, 0.0)
+        y = np.append(y, 0.0)
+    if 1.0 not in x:
+        x = np.append(x, 1.0)
+        y = np.append(y, 1.0)
+    order = np.lexsort((y, x))
+    x, y = x[order], y[order]
+    auc = np.trapz(y, x)
+    return auc
