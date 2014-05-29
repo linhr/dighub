@@ -92,8 +92,8 @@ class SupervisedRWRecommender(object):
         return delta < self.epsilon, delta
 
     def _get_stationary_distribution(self, Q0, root):
-        P = np.empty((self.N,))
-        P.fill(1.0 / self.N)
+        P = np.zeros((self.N,))
+        P[root] = 1.0
         converged, delta = False, 0.0
         for _ in xrange(self.max_steps):
             P1 = sparsetools.vector_csr_matrix_multiply(P, Q0)
