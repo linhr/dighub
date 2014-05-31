@@ -38,7 +38,7 @@ class Command(AnalyzerCommand):
         group.add_argument('--lambda-w', type=float, default=0.01)
         group.add_argument('--epsilon', type=float, default=0.01)
         group.add_argument('--loss-width', type=float, default=1.0)
-        group.add_argument('--weight-key', default=None)
+        group.add_argument('--weight-key', nargs='+', default=())
         group.add_argument('--max-steps', type=int, default=10)
         group.add_argument('--data-path', default='')
         group.add_argument('--graph-path', nargs='+', default=())

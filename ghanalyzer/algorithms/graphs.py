@@ -1,3 +1,4 @@
+import networkx as nx
 from scipy.sparse import dok_matrix
 
 import ghanalyzer.models
@@ -45,3 +46,12 @@ class Bigraph(object):
         if not hasattr(self, '_matrix'):
             self._matrix = self._build_matrix()
         return self._matrix
+
+
+class AdjacencyMatrix(object):
+    def __init__(self, graph, format='csr', weight=None, dtype=None):
+        self.graph = graph
+        self.nodes = self.graph.nodes()
+        self.node_indices = {n: i for i, n in enumerate(self.nodes)}
+        self.matrix = nx.to_scipy_sparse_matrix(self.graph, nodelist=self.nodes,
+            dtype=dtype, weight=weight, format=format)

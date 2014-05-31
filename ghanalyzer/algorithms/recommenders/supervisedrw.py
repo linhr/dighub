@@ -5,9 +5,10 @@ import numpy as np
 import networkx as nx
 from scipy.sparse import csr_matrix
 from scipy.optimize import fmin_l_bfgs_b
-from sklearn.preprocessing import normalize, StandardScaler
+from sklearn.preprocessing import normalize
 
-from ghanalyzer.algorithms.graphfeatures import UserFeature, RepositoryFeature, BigraphEdgeFeature
+from ghanalyzer.algorithms.graphs import AdjacencyMatrix
+from ghanalyzer.algorithms.graphfeatures import *
 from ghanalyzer.models import Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 from ghanalyzer.utils import sparsetools
@@ -18,7 +19,7 @@ def sigmoid(x):
 
 class SupervisedRWRecommender(object):
     """recommender based on Supervised Random Walk (WSDM 2011)"""
-    def __init__(self, data_path, max_steps=100, alpha=0.85, lambda_=0.01, epsilon=0.01, loss_width=1.0, weight_key=None):
+    def __init__(self, data_path, max_steps=100, alpha=0.85, lambda_=0.01, epsilon=0.01, loss_width=1.0, weight_key=()):
         self.data_path = data_path
         self.max_steps = max_steps
         self.alpha = float(alpha)
@@ -30,18 +31,19 @@ class SupervisedRWRecommender(object):
     def train(self, graph):
         self.graph = graph.to_directed()
         self.candidates = [n for n in self.graph if isinstance(n, Repository)]
-        self.feature_extractor = BigraphEdgeFeature(self.graph,
-            source_extractor=UserFeature(self.graph, self.data_path),
-            target_extractor=RepositoryFeature(self.graph, self.data_path),
-            weight_key=self.weight_key)
+        self.adj = AdjacencyMatrix(self.graph, format='csr')
+        self.feature_extractor = CombinedFeature(self.adj,
+            ConstantFeature(self.adj),
+            UserFeature(self.adj),
+            RepositoryFeature(self.adj),
+            EdgeAttributeFeature(self.adj, keys=self.weight_key))
         self.nodes = self.feature_extractor.nodes
         self.node_indices = self.feature_extractor.node_indices
         self.indices = self.feature_extractor.indices
         self.indptr = self.feature_extractor.indptr
-        self.features = self.feature_extractor.features
-        self.features = StandardScaler().fit_transform(self.features)
         self.N = len(self.nodes)
-        self.E, self.M = self.features.shape
+        self.E = self.feature_extractor.edge_count
+        self.M = self.feature_extractor.feature_count
 
     def recommend(self, user, n):
         rank = self._get_rank(user)
@@ -52,12 +54,16 @@ class SupervisedRWRecommender(object):
     def _csr_from_data(self, data):
         return csr_matrix((data, self.indices, self.indptr), shape=(self.N, self.N))
 
-    def _get_edge_strength(self, w):
-        S = np.einsum('ij,j->i', self.features, w)
+    def _get_edge_feature(self, root):
+        psi = self.feature_extractor.get_feature_matrix(root)
+        return psi
+
+    def _get_edge_strength(self, psi, w):
+        S = np.einsum('ij,j->i', psi, w)
         A = sigmoid(S)
         dA = np.empty((self.E, self.M), order='F')
         derivative = A * (1 - A)
-        np.multiply(derivative[:, np.newaxis], self.features, out=dA)
+        np.multiply(derivative[:, np.newaxis], psi, out=dA)
         return A, dA
 
     def _get_transition_probability(self, A):
@@ -128,8 +134,8 @@ class SupervisedRWRecommender(object):
                     'in %d iteration(s) (delta=%f, m=%d)' % (self.max_steps, delta, m)
         return dP
 
-    def _loss_function(self, w, root, pairs):
-        A, dA = self._get_edge_strength(w)
+    def _loss_function(self, w, psi, root, pairs):
+        A, dA = self._get_edge_strength(psi, w)
         Q0 = self._get_transition_probability(A)
         dQ = self._get_transition_probability_derivative(A, dA)
         P = self._get_stationary_distribution(Q0, root)
@@ -157,10 +163,11 @@ class SupervisedRWRecommender(object):
         positive, negative = self._select_samples(user)
         pairs = [(u, v) for u in negative for v in positive]
         u = self.node_indices[user]
+        psi = self._get_edge_feature(u)
 
         w0 = np.random.rand(self.M)
-        w, _, _ = fmin_l_bfgs_b(self._loss_function, w0, args=(u, pairs), iprint=0)
-        A, _ = self._get_edge_strength(w)
+        w, _, _ = fmin_l_bfgs_b(self._loss_function, w0, args=(psi, u, pairs), iprint=0)
+        A, _ = self._get_edge_strength(psi, w)
         Q0 = self._get_transition_probability(A)
         P = self._get_stationary_distribution(Q0, u)
         return P
