@@ -34,9 +34,7 @@ class SupervisedRWRecommender(object):
         self.adj = AdjacencyMatrix(self.graph, format='csr')
         self.feature_extractor = CombinedFeature(self.adj,
             ConstantFeature(self.adj),
-            UserFeature(self.adj),
-            RepositoryFeature(self.adj),
-            EdgeAttributeFeature(self.adj, keys=self.weight_key))
+            CFSimilarityFeature(self.adj))
         self.nodes = self.feature_extractor.nodes
         self.node_indices = self.feature_extractor.node_indices
         self.indices = self.feature_extractor.indices

@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 
 from ghanalyzer.algorithms.graphs import AdjacencyMatrix
 from ghanalyzer.algorithms.features import LanguageVector
+from ghanalyzer.algorithms.recommenders import UserCFRecommender, ItemCFRecommender
 from ghanalyzer.io import load_accounts, load_repositories, load_repository_languages
 from ghanalyzer.models import Entity, User, Repository
 
@@ -14,6 +15,7 @@ from ghanalyzer.models import Entity, User, Repository
 __all__ = [
     'DummyFeature', 'ConstantFeature', 'UserFeature', 'RepositoryFeature',
     'LanguageFeature', 'EdgeAttributeFeature', 'CombinedFeature',
+    'CFSimilarityFeature',
 ]
 
 
@@ -172,3 +174,39 @@ class CombinedFeature(EdgeFeature):
     def get_feature_matrix(self, root=None):
         features = tuple(e.get_feature_matrix(root) for e in self.extractors)
         return np.concatenate(features, axis=1)
+
+
+class CFSimilarityFeature(EdgeFeature):
+    feature_count = 3
+
+    def __init__(self, adj, standardize=True):
+        super(CFSimilarityFeature, self).__init__(adj)
+        self.standardize = standardize
+        self.usercf = UserCFRecommender()
+        self.itemcf = ItemCFRecommender()
+        self.usercf.train(self.graph)
+        self.itemcf.train(self.graph)
+
+    def get_feature_matrix(self, root=None):
+        root = self.nodes[root]
+        if not isinstance(root, User):
+            return np.zeros((self.edge_count, self.feature_count))
+
+        rank1 = self.usercf.get_rank(root)
+        rank2 = self.itemcf.get_rank(root)
+        node_features = np.zeros((len(self.nodes), self.feature_count))
+        r = self.usercf.bigraph.source_indices[root]
+        for n, s in self.usercf.similarity.measure(r):
+            node = self.usercf.bigraph.sources[n]
+            i = self.node_indices[node]
+            node_features[i, 0] = s
+        for i, n in enumerate(self.nodes):
+            if isinstance(n, Repository):
+                node_features[i, 1] = rank1[n]
+                node_features[i, 2] = rank2[n]
+
+        # treat the feature of node v as the feature of edge (u, v)
+        features = node_features[self.indices, :]
+        if self.standardize:
+            features = StandardScaler().fit_transform(features)
+        return features
