@@ -37,30 +37,30 @@ def get_frequencies(report, cutoff=None):
     return frequencies
 
 def get_precision(frequencies):
-    tp = frequencies[:, ..., 0]
-    fp = frequencies[:, ..., 2]
+    tp = frequencies[:, ..., 0].sum(axis=0)
+    fp = frequencies[:, ..., 2].sum(axis=0)
     return tp / (tp + fp)
 
 def get_recall(frequencies):
-    tp = frequencies[:, ..., 0]
-    fn = frequencies[:, ..., 3]
+    tp = frequencies[:, ..., 0].sum(axis=0)
+    fn = frequencies[:, ..., 3].sum(axis=0)
     return tp / (tp + fn)
 
 get_sensitivity = get_recall
 
 def get_fallout(frequencies):
-    tn = frequencies[:, ..., 1]
-    fp = frequencies[:, ..., 2]
+    tn = frequencies[:, ..., 1].sum(axis=0)
+    fp = frequencies[:, ..., 2].sum(axis=0)
     return fp / (fp + tn)
 
 def precision_recall_curve(frequencies):
-    precision = nanmean(get_precision(frequencies), axis=0)
-    recall = nanmean(get_recall(frequencies), axis=0)
+    precision = get_precision(frequencies)
+    recall = get_recall(frequencies)
     return precision, recall
 
 def roc_curve(frequencies):
-    sensitivity = nanmean(get_sensitivity(frequencies), axis=0)
-    fallout = nanmean(get_fallout(frequencies), axis=0)
+    sensitivity = get_sensitivity(frequencies)
+    fallout = get_fallout(frequencies)
     return sensitivity, fallout
 
 def get_average_precision(report):
@@ -85,7 +85,9 @@ def get_mean_average_precision(report):
     return nanmean(average_precision)
 
 def get_roc_auc(frequencies):
-    y, x = sensitivity, fallout = roc_curve(frequencies)
+    sensitivity, fallout = roc_curve(frequencies)
+    y = np.atleast_1d(sensitivity)
+    x = np.atleast_1d(fallout)
     if 0.0 not in x:
         x = np.append(x, 0.0)
         y = np.append(y, 0.0)
