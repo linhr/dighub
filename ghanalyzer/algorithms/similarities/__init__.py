@@ -1,1 +1,3 @@
 from ghanalyzer.algorithms.similarities.jaccard import JaccardSimilarity
+from ghanalyzer.algorithms.similarities.cosine import CosineSimilarity
+from ghanalyzer.algorithms.similarities.linear import LinearSimilarity

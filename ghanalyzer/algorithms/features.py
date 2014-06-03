@@ -16,11 +16,12 @@ class FeatureExtractor(object):
         
 
 class LanguageVector(FeatureExtractor):
-    def __init__(self, dataset):
+    def __init__(self, dataset, normalize=True):
         super(LanguageVector, self).__init__(dataset)
         self.vectorizer = DictVectorizer()
         self.features = self.vectorizer.fit_transform(dataset.values())
-        self.features = normalize(self.features, norm='l1')
+        if normalize:
+            self.features = normalize(self.features, norm='l1')
 
 
 class LanguagePCA(LanguageVector):

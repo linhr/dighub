@@ -5,6 +5,8 @@ from ghanalyzer.algorithms.recommenders import (
     RandomRecommender,
     UserCFRecommender,
     ItemCFRecommender,
+    LanguageBasedRecommender,
+    DescriptionBasedRecommender,
     NMFRecommender,
     PersonalRankRecommender,
     SupervisedRWRecommender,
@@ -19,7 +21,8 @@ class Command(AnalyzerCommand):
 
     def define_arguments(self, parser):
         parser.add_argument('recommender',
-            choices=['Random', 'UserCF', 'ItemCF', 'NMF', 'RandomWalk', 'SupervisedRW'])
+            choices=['Random', 'UserCF', 'ItemCF', 'LanguageBased', 'DescriptionBased',
+                'NMF', 'RandomWalk', 'SupervisedRW'])
         parser.add_argument('-p', '--path', required=True)
         parser.add_argument('-f', '--format', choices=['json'], default='json')
         parser.add_argument('-o', '--output')
@@ -69,6 +72,10 @@ class Command(AnalyzerCommand):
             recommender = UserCFRecommender(n_neighbors=args.neighbor_count)
         elif args.recommender == 'ItemCF':
             recommender = ItemCFRecommender(n_neighbors=args.neighbor_count)
+        elif args.recommender == 'LanguageBased':
+            recommender = LanguageBasedRecommender(data_path=args.data_path)
+        elif args.recommender == 'DescriptionBased':
+            recommender = DescriptionBasedRecommender(data_path=args.data_path)
         elif args.recommender == 'NMF':
             recommender = NMFRecommender(n_components=args.component_count)
         elif args.recommender == 'RandomWalk':
