@@ -9,4 +9,3 @@ class LinearSimilarity(object):
 
     def __getitem__(self, pair):
         return self.matrix[pair]
-        

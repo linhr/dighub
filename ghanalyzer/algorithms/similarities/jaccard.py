@@ -38,22 +38,22 @@ class JaccardSimilarity(object):
         features = self.features.tocsr()
         indptr = features.indptr
         indices = features.indices
-        coo = similarities.tocoo()
+        coo = similarities.tocoo(copy=False)
         for i, (u, v) in enumerate(izip(coo.row, coo.col)):
             u_start, u_end = indptr[u], indptr[u+1]
             v_start, v_end = indptr[v], indptr[v+1]
             uv = set(indices[u_start:u_end]) | set(indices[v_start:v_end])
             coo.data[i] /= float(len(uv))
 
-        self.similarities = similarities
+        self.matrix = similarities
 
     def __getitem__(self, pair):
-        return self.similarities[pair]
+        return self.matrix[pair]
 
     def measure(self, u):
-        start, end = self.similarities.indptr[u:u+2]
-        return list(izip(self.similarities.indices[start:end],
-            self.similarities.data[start:end]))
+        start, end = self.matrix.indptr[u:u+2]
+        return list(izip(self.matrix.indices[start:end],
+            self.matrix.data[start:end]))
 
     def nearest(self, u, k):
         neighbors = sorted(self.measure(u), key=itemgetter(1), reverse=True)
