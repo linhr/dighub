@@ -3,57 +3,71 @@ from itertools import izip
 
 import numpy as np
 
-from ghanalyzer.algorithms.features import LanguageVector, DescriptionVector
-from ghanalyzer.algorithms.graphs import get_nodes
-from ghanalyzer.algorithms.similarities import CosineSimilarity, LinearSimilarity
-from ghanalyzer.models import Repository
-from ghanalyzer.io import load_repository_languages, load_repository_descriptions
+from ghanalyzer.algorithms.graphs import Bigraph, BigraphSimilarity
+from ghanalyzer.algorithms.features import (
+    load_language_features,
+    load_description_features,
+    load_follow_features,
+)
+from ghanalyzer.models import User, Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 
 
 class ContentBasedRecommender(object):
     def __init__(self, data_path):
         self.data_path = data_path
-    
+
     def train(self, graph):
-        self.graph = graph
-        self.repos = list(get_nodes(self.graph, Repository))
-        self.repo_indices = {x: i for i, x in enumerate(self.repos)}
+        self.bigraph = Bigraph(graph, source_cls=User, target_cls=Repository)
         self._calculate_similarities()
 
     def _calculate_similarities(self):
         raise NotImplementedError()
 
     def get_rank(self, user):
-        indices = [self.repo_indices[r] for r in self.graph[user]]
-        rank = np.sum(self.similarity.matrix[indices, :], axis=0)
-        rank = {k: v for k, v in izip(self.repos, rank)}
+        u = self.bigraph.source_indices[user]
+        rank = self.similarity.st[u, :]
+        rank = {k: v for k, v in izip(self.bigraph.targets, rank)}
         return rank
 
     def recommend(self, user, n):
         rank = self.get_rank(user)
-        for repo in self.graph[user]:
+        for repo in self.bigraph.graph[user]:
             rank.pop(repo, None)
         return recommend_by_rank(rank, n)
 
 
 class LanguageBasedRecommender(ContentBasedRecommender):
     def _calculate_similarities(self):
-        languages = load_repository_languages(self.data_path)
-        languages[None] = {}  # add dummy data item
-        languages = LanguageVector(languages, normalize=False)
-        default_index = languages.sample_indices[None]
-        indices = [languages.sample_indices.get(r.id, default_index) for r in self.repos]
-        self.features = languages.features[indices, :]
-        self.similarity = CosineSimilarity(self.features)
+        features = load_language_features(self.data_path, self.bigraph.targets)
+        self.similarity = BigraphSimilarity(self.bigraph, features, 'target')
 
 
 class DescriptionBasedRecommender(ContentBasedRecommender):
     def _calculate_similarities(self):
-        descriptions = load_repository_descriptions(self.data_path)
-        descriptions[None] = ''  # add dummy data item
-        descriptions = DescriptionVector(descriptions, tfidf=True)
-        default_index = descriptions.sample_indices[None]
-        indices = [descriptions.sample_indices.get(r.id, default_index) for r in self.repos]
-        self.features = descriptions.features[indices, :]
-        self.similarity = LinearSimilarity(self.features)
+        features = load_description_features(self.data_path, self.bigraph.targets)
+        self.similarity = BigraphSimilarity(self.bigraph, features, 'target')
+
+
+class QuasiUserCFRecommender(ContentBasedRecommender):
+    def _calculate_similarities(self):
+        features = self.bigraph.matrix.copy()
+        self.similarity = BigraphSimilarity(self.bigraph, features, 'source')
+
+
+class QuasiItemCFRecommender(ContentBasedRecommender):
+    def _calculate_similarities(self):
+        features = self.bigraph.matrix.T.tocsr().copy()
+        self.similarity = BigraphSimilarity(self.bigraph, features, 'target')
+
+
+class FollowerBasedRecommender(ContentBasedRecommender):
+    def _calculate_similarities(self):
+        followers, _ = load_follow_features(self.data_path, self.bigraph.sources)
+        self.similarity = BigraphSimilarity(self.bigraph, followers, 'source')
+
+
+class FolloweeBasedRecommender(ContentBasedRecommender):
+    def _calculate_similarities(self):
+        _, followees = load_follow_features(self.data_path, self.bigraph.sources)
+        self.similarity = BigraphSimilarity(self.bigraph, followees, 'source')

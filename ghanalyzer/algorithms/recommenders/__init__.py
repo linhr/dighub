@@ -6,6 +6,10 @@ from ghanalyzer.algorithms.recommenders.collaborativefiltering import (
 from ghanalyzer.algorithms.recommenders.contentbased import (
     LanguageBasedRecommender,
     DescriptionBasedRecommender,
+    QuasiUserCFRecommender,
+    QuasiItemCFRecommender,
+    FollowerBasedRecommender,
+    FolloweeBasedRecommender,
 )
 from ghanalyzer.algorithms.recommenders.factorization import NMFRecommender
 from ghanalyzer.algorithms.recommenders.personalrank import PersonalRankRecommender

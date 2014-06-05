@@ -7,6 +7,10 @@ from ghanalyzer.algorithms.recommenders import (
     ItemCFRecommender,
     LanguageBasedRecommender,
     DescriptionBasedRecommender,
+    QuasiUserCFRecommender,
+    QuasiItemCFRecommender,
+    FollowerBasedRecommender,
+    FolloweeBasedRecommender,
     NMFRecommender,
     PersonalRankRecommender,
     SupervisedRWRecommender,
@@ -22,6 +26,7 @@ class Command(AnalyzerCommand):
     def define_arguments(self, parser):
         parser.add_argument('recommender',
             choices=['Random', 'UserCF', 'ItemCF', 'LanguageBased', 'DescriptionBased',
+                'QuasiUserCF', 'QuasiItemCF', 'FollowerBased', 'FolloweeBased',
                 'NMF', 'RandomWalk', 'SupervisedRW'])
         parser.add_argument('-p', '--path', required=True)
         parser.add_argument('-f', '--format', choices=['json'], default='json')
@@ -76,6 +81,14 @@ class Command(AnalyzerCommand):
             recommender = LanguageBasedRecommender(data_path=args.data_path)
         elif args.recommender == 'DescriptionBased':
             recommender = DescriptionBasedRecommender(data_path=args.data_path)
+        elif args.recommender == 'QuasiUserCF':
+            recommender = QuasiUserCFRecommender(data_path=args.data_path)
+        elif args.recommender == 'QuasiItemCF':
+            recommender = QuasiItemCFRecommender(data_path=args.data_path)
+        elif args.recommender == 'FollowerBased':
+            recommender = FollowerBasedRecommender(data_path=args.data_path)
+        elif args.recommender == 'FolloweeBased':
+            recommender = FolloweeBasedRecommender(data_path=args.data_path)
         elif args.recommender == 'NMF':
             recommender = NMFRecommender(n_components=args.component_count)
         elif args.recommender == 'RandomWalk':

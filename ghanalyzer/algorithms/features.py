@@ -7,6 +7,12 @@ from sklearn.preprocessing import normalize
 from gensim.models.ldamodel import LdaModel
 from gensim.matutils import Sparse2Corpus
 
+from ghanalyzer.io import (
+    load_graph,
+    load_repository_languages,
+    load_repository_descriptions,
+)
+
 
 class FeatureExtractor(object):
     def __init__(self, dataset):
@@ -71,3 +77,32 @@ class DescriptionNMF(DescriptionVector):
         words = numpy.array(words, dtype=object)
         indices = numpy.argsort(-numpy.absolute(self.transformer.components_))
         return words[indices]
+
+
+def load_language_features(data_path, repos):
+    languages = load_repository_languages(data_path)
+    languages[None] = {}  # add dummy data item
+    languages = LanguageVector(languages, normalize=False)
+    default_index = languages.sample_indices[None]
+    indices = [languages.sample_indices.get(r.id, default_index) for r in repos]
+    return languages.features[indices, :]
+
+
+def load_description_features(data_path, repos):
+    descriptions = load_repository_descriptions(data_path)
+    descriptions[None] = ''  # add dummy data item
+    descriptions = DescriptionVector(descriptions, tfidf=True)
+    default_index = descriptions.sample_indices[None]
+    indices = [descriptions.sample_indices.get(r.id, default_index) for r in repos]
+    return descriptions.features[indices, :]
+
+
+def load_follow_features(data_path, users):
+    graph = load_graph(data_path, 'follow')
+    graph.add_nodes_from(users)
+    vectorizer = DictVectorizer(sparse=True)
+    followers = [dict.fromkeys(graph.predecessors(u), 1) for u in users]
+    followers = vectorizer.fit_transform(followers)
+    followees = [dict.fromkeys(graph.successors(u), 1) for u in users]
+    followees = vectorizer.fit_transform(followees)
+    return followers, followees

@@ -1,5 +1,7 @@
 import networkx as nx
 from scipy.sparse import dok_matrix
+from sklearn.preprocessing import normalize
+from sklearn.metrics.pairwise import linear_kernel
 
 import ghanalyzer.models
 
@@ -55,3 +57,38 @@ class AdjacencyMatrix(object):
         self.node_indices = {n: i for i, n in enumerate(self.nodes)}
         self.matrix = nx.to_scipy_sparse_matrix(self.graph, nodelist=self.nodes,
             dtype=dtype, weight=weight, format=format)
+
+
+class BigraphSimilarity(object):
+    def __init__(self, bigraph, features, feature_type):
+        self.bigraph = bigraph
+        if feature_type == 'source':
+            self._from_source_features(features)
+        elif feature_type == 'target':
+            self._from_target_features(features)
+        else:
+            raise ValueError('feature type must be "source" or "target"')
+        self._build_similarity_matrix()
+
+    def _from_source_features(self, features):
+        assert features.shape[0] == self.bigraph.matrix.shape[0]
+        self.source_features = features.copy()
+        self.target_features = self.bigraph.matrix.T.dot(features)
+
+    def _from_target_features(self, features):
+        assert features.shape[0] == self.bigraph.matrix.shape[1]
+        self.target_features = features.copy()
+        self.source_features = self.bigraph.matrix.dot(features)
+
+    def _build_similarity_matrix(self):
+        """
+        partitioned similarity matrix ('s' for source nodes and 't' for target nodes)
+        S = [[S_ss, S_st],
+             [S_ts, S_tt]]
+        """
+        normalize(self.source_features, norm='l2', copy=False)
+        normalize(self.target_features, norm='l2', copy=False)
+        self.ss = linear_kernel(self.source_features)
+        self.st = linear_kernel(self.source_features, self.target_features)
+        self.ts = self.st.T
+        self.tt = linear_kernel(self.target_features)
