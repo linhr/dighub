@@ -1,3 +1,4 @@
+import gc
 import random
 from itertools import izip
 
@@ -7,9 +8,14 @@ from scipy.sparse import csr_matrix
 from scipy.optimize import fmin_l_bfgs_b
 from sklearn.preprocessing import normalize
 
-from ghanalyzer.algorithms.graphs import AdjacencyMatrix
+from ghanalyzer.algorithms.features import (
+    load_language_features,
+    load_description_features,
+    load_follow_features,
+)
+from ghanalyzer.algorithms.graphs import Bigraph, AdjacencyMatrix, BigraphSimilarity
 from ghanalyzer.algorithms.graphfeatures import *
-from ghanalyzer.models import Repository
+from ghanalyzer.models import User, Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 from ghanalyzer.utils import sparsetools
 
@@ -32,9 +38,7 @@ class SupervisedRWRecommender(object):
         self.graph = graph.to_directed()
         self.candidates = [n for n in self.graph if isinstance(n, Repository)]
         self.adj = AdjacencyMatrix(self.graph, format='csr')
-        self.feature_extractor = CombinedFeature(self.adj,
-            ConstantFeature(self.adj),
-            CFSimilarityFeature(self.adj))
+        self.feature_extractor = self._create_feature_extractor()
         self.nodes = self.feature_extractor.nodes
         self.node_indices = self.feature_extractor.node_indices
         self.indices = self.feature_extractor.indices
@@ -48,6 +52,29 @@ class SupervisedRWRecommender(object):
         rank = {k: v for k, v in izip(self.nodes, rank) \
             if isinstance(k, Repository) and k not in self.graph[user]}
         return recommend_by_rank(rank, n)
+
+    def _create_feature_extractor(self):
+        bigraph = Bigraph(self.graph, source_cls=User, target_cls=Repository)
+        followers, followees = load_follow_features(self.data_path, bigraph.sources)
+        languages = load_language_features(self.data_path, bigraph.targets)
+        descriptions = load_description_features(self.data_path, bigraph.targets)
+        gc.collect()  # force garbage collection
+        features = [
+            (bigraph.matrix.copy(), 'source'),
+            (bigraph.matrix.T.tocsr().copy(), 'target'),
+            (languages, 'target'),
+            (descriptions, 'target'),
+            (followers, 'source'),
+            (followees, 'source'),
+        ]
+        extractors = [
+            ConstantFeature(self.adj),
+        ]
+        for feature, type_ in features:
+            similarity = BigraphSimilarity(bigraph, feature, type_)
+            extractor = SimilarityFeature(self.adj, similarity)
+            extractors.append(extractor)
+        return CombinedFeature(self.adj, *extractors)
 
     def _csr_from_data(self, data):
         return csr_matrix((data, self.indices, self.indptr), shape=(self.N, self.N))
