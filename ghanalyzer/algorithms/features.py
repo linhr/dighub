@@ -1,3 +1,6 @@
+import os.path
+from collections import defaultdict
+
 import numpy
 from nltk.corpus import stopwords
 from sklearn.feature_extraction import DictVectorizer
@@ -8,10 +11,10 @@ from gensim.models.ldamodel import LdaModel
 from gensim.matutils import Sparse2Corpus
 
 from ghanalyzer.io import (
-    load_graph,
     load_repository_languages,
     load_repository_descriptions,
 )
+from ghanalyzer.utils.jsonline import JsonLineData
 
 
 class FeatureExtractor(object):
@@ -98,11 +101,20 @@ def load_description_features(data_path, repos):
 
 
 def load_follow_features(data_path, users):
-    graph = load_graph(data_path, 'follow')
-    graph.add_nodes_from(users)
+    followers = defaultdict(set)
+    followees = defaultdict(set)
+    path = os.path.join(data_path, 'Follow.jsonl')
+    with JsonLineData(path) as data:
+        for item in data:
+            s, t = item.get('follower'), item.get('followee')
+            if s is None or t is None:
+                continue
+            i, j = s['id'], t['id']
+            followers[j].add(i)
+            followees[i].add(j)
     vectorizer = DictVectorizer(sparse=True)
-    followers = [dict.fromkeys(graph.predecessors(u), 1) for u in users]
+    followers = [dict.fromkeys(followers[u.id], 1) for u in users]
     followers = vectorizer.fit_transform(followers)
-    followees = [dict.fromkeys(graph.successors(u), 1) for u in users]
+    followees = [dict.fromkeys(followees[u.id], 1) for u in users]
     followees = vectorizer.fit_transform(followees)
     return followers, followees
