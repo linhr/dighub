@@ -14,9 +14,10 @@ from ghanalyzer.utils.recommendation import recommend_by_rank
 
 class PersonalRankRecommender(object):
     """recommender based on Topic-Sensitive PageRank (WWW 2002)"""
-    def __init__(self, alpha, max_steps):
+    def __init__(self, alpha, max_steps, epsilon):
         self.alpha = float(alpha)  # restart probability
         self.max_steps = max_steps
+        self.epsilon = epsilon
         self.other_graphs = []
 
     def add_other_graphs(self, *graphs):
@@ -38,17 +39,21 @@ class PersonalRankRecommender(object):
         self.col = self.adjacency.col.astype(np.int)
         self.edge_weights = self.adjacency.data.astype(np.float)
 
-    def _recommend_numpy(self, user, n):
+    def _get_rank(self, user):
         u = self.node_indices[user]
         rank = np.zeros((self.size,), dtype=np.float)
         rank[u] = 1.0
         for _ in xrange(self.max_steps):
-            rank = randomwalk.update_rank_numpy(rank, u,
+            rank1 = randomwalk.update_rank_numpy(rank, u,
                 self.degrees, self.row, self.col, self.edge_weights, self.alpha)
+            converged, _ = randomwalk.check_converged(rank, rank1, self.epsilon)
+            if converged:
+                break
+            rank = rank1
         return rank
 
     def recommend(self, user, n):
-        rank = self._recommend_numpy(user, n)
+        rank = self._get_rank(user)
         rank = {k: v for k, v in izip(self.nodes, rank) \
             if isinstance(k, Repository) and k not in self.graph[user]}
         return recommend_by_rank(rank, n)

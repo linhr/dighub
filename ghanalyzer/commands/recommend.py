@@ -92,7 +92,8 @@ class Command(AnalyzerCommand):
         elif args.recommender == 'NMF':
             recommender = NMFRecommender(n_components=args.component_count)
         elif args.recommender == 'RandomWalk':
-            recommender = PersonalRankRecommender(alpha=args.alpha, max_steps=args.max_steps)
+            recommender = PersonalRankRecommender(alpha=args.alpha, max_steps=args.max_steps,
+                epsilon=args.epsilon)
             recommender.add_other_graphs(*self._load_graphs(args))
         elif args.recommender == 'SupervisedRW':
             recommender = SupervisedRWRecommender(data_path=args.data_path,

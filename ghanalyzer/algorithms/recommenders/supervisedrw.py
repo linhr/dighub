@@ -16,6 +16,7 @@ from ghanalyzer.algorithms.features import (
 from ghanalyzer.algorithms.graphs import Bigraph, AdjacencyMatrix, BigraphSimilarity
 from ghanalyzer.algorithms.graphfeatures import *
 from ghanalyzer.models import User, Repository
+from ghanalyzer.utils.randomwalk import check_converged
 from ghanalyzer.utils.recommendation import recommend_by_rank
 from ghanalyzer.utils import sparsetools
 
@@ -117,11 +118,6 @@ class SupervisedRWRecommender(object):
 
         return dQ
 
-    def _converged(self, X1, X2):
-        delta = np.abs(X2 - X1)
-        delta = np.max(delta)
-        return delta < self.epsilon, delta
-
     def _get_stationary_distribution(self, Q0, root):
         P = np.zeros((self.N,))
         P[root] = 1.0
@@ -130,7 +126,7 @@ class SupervisedRWRecommender(object):
             P1 = sparsetools.vector_csr_matrix_multiply(P, Q0)
             P1 *= 1 - self.alpha
             P1[root] += self.alpha
-            converged, delta = self._converged(P, P1)
+            converged, delta = check_converged(P, P1, self.epsilon)
             if converged:
                 break
             P = P1
@@ -150,7 +146,7 @@ class SupervisedRWRecommender(object):
                 dPQ *= 1 - self.alpha
                 dPQ[root] += self.alpha * dP[:, m].sum()
                 dPm = dPQ + PdQ
-                converged, delta = self._converged(dP[:, m], dPm)
+                converged, delta = check_converged(dP[:, m], dPm, self.epsilon)
                 if converged:
                     break
                 dP[:, m] = dPm

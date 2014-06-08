@@ -23,3 +23,12 @@ def update_rank_numpy(
     updated[u] += alpha
     
     return updated
+
+
+def check_converged(
+        np.ndarray[np.float_t, ndim=1] X1,
+        np.ndarray[np.float_t, ndim=1] X2,
+        float epsilon):
+    delta = np.abs(X2 - X1)
+    delta = np.max(delta)
+    return delta < epsilon, delta
