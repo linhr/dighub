@@ -35,7 +35,7 @@ class Command(AnalyzerCommand):
 
         group = parser.add_argument_group('experiment options')
         group.add_argument('--train-ratio', type=float, default=0.8)
-        group.add_argument('--recommendation-count', type=int, default=1)
+        group.add_argument('--recommendation-count', type=int, default=None)
         group.add_argument('--random-seed', type=int, default=None)
         group.add_argument('--print-every', type=int, default=None)
 

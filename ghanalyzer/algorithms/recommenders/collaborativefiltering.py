@@ -13,7 +13,7 @@ class CFRecommender(object):
     def get_rank(self, user):
         raise NotImplementedError()
 
-    def recommend(self, user, n):
+    def recommend(self, user, n=None):
         rank = self.get_rank(user)
         for repo in self.bigraph.graph[user]:
             rank.pop(repo, None)

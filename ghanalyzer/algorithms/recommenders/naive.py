@@ -10,9 +10,10 @@ class RandomRecommender(object):
         self.graph = graph
         self.repos = set(get_nodes(graph, Repository))
 
-    def recommend(self, user, n):
+    def recommend(self, user, n=None):
         candidates = list(self.repos - set(self.graph.neighbors_iter(user)))
-        if n < len(candidates):
+        if n is not None and n < len(candidates):
             return random.sample(candidates, n)
         else:
-            return random.shuffle(candidates)
+            random.shuffle(candidates)
+            return candidates

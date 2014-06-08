@@ -48,7 +48,7 @@ class SupervisedRWRecommender(object):
         self.E = self.feature_extractor.edge_count
         self.M = self.feature_extractor.feature_count
 
-    def recommend(self, user, n):
+    def recommend(self, user, n=None):
         rank = self._get_rank(user)
         rank = {k: v for k, v in izip(self.nodes, rank) \
             if isinstance(k, Repository) and k not in self.graph[user]}

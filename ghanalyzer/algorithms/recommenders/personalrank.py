@@ -52,7 +52,7 @@ class PersonalRankRecommender(object):
             rank = rank1
         return rank
 
-    def recommend(self, user, n):
+    def recommend(self, user, n=None):
         rank = self._get_rank(user)
         rank = {k: v for k, v in izip(self.nodes, rank) \
             if isinstance(k, Repository) and k not in self.graph[user]}

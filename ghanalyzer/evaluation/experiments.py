@@ -17,7 +17,7 @@ def separate_graph_data(graph, train_ratio=0.8, random_seed=None):
 
 
 class RecommenderTest(object):
-    def __init__(self, recommender, graph, train_ratio, n_recommendations,
+    def __init__(self, recommender, graph, train_ratio, n_recommendations=None,
             random_seed=None):
         self.recommender = recommender
         self.graph = graph

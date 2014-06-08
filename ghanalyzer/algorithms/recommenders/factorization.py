@@ -21,7 +21,7 @@ class FactorizationRecommender(object):
     def _predict(self, u, r):
         return self.user_features[u, :].dot(self.repo_features[r, :].T)
 
-    def recommend(self, user, n):
+    def recommend(self, user, n=None):
         u = self.bigraph.source_indices[user]
         rank = {}
         candidates = set(self.bigraph.targets) - set(self.bigraph.graph.neighbors_iter(user))

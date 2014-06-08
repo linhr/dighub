@@ -30,7 +30,7 @@ class ContentBasedRecommender(object):
         rank = {k: v for k, v in izip(self.bigraph.targets, rank)}
         return rank
 
-    def recommend(self, user, n):
+    def recommend(self, user, n=None):
         rank = self.get_rank(user)
         for repo in self.bigraph.graph[user]:
             rank.pop(repo, None)
