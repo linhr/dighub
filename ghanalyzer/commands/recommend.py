@@ -42,7 +42,7 @@ class Command(AnalyzerCommand):
         group = parser.add_argument_group('recommender parameters')
         group.add_argument('--neighbor-count', type=int, default=None)
         group.add_argument('--component-count', type=int, default=10)
-        group.add_argument('--alpha', type=float, default=0.85)
+        group.add_argument('--alpha', type=float, default=0.15)
         group.add_argument('--lambda-w', type=float, default=0.01)
         group.add_argument('--epsilon', type=float, default=0.01)
         group.add_argument('--loss-width', type=float, default=1.0)

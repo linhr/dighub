@@ -15,7 +15,7 @@ from ghanalyzer.utils.recommendation import recommend_by_rank
 class PersonalRankRecommender(object):
     """recommender based on Topic-Sensitive PageRank (WWW 2002)"""
     def __init__(self, alpha, max_steps):
-        self.alpha = float(alpha)
+        self.alpha = float(alpha)  # restart probability
         self.max_steps = max_steps
         self.other_graphs = []
 
