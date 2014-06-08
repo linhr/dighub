@@ -47,11 +47,16 @@ class RecommenderTest(object):
         for i, user in enumerate(users):
             if print_every is not None and i % print_every == 0:
                 print 'Generating recommendation for user %d...' % i
+            training = self.train_graph.neighbors(user)
+            groundtruth = self.test_graph.neighbors(user)
+            if not training or not groundtruth:
+                continue
+            recommended = self.recommender.recommend(user, self.n_recommendations)
             recommendation.append({
                 'user': user,
-                'training': self.train_graph.neighbors(user),
-                'recommended': self.recommender.recommend(user, self.n_recommendations),
-                'groundtruth': self.test_graph.neighbors(user),
+                'training': training,
+                'recommended': recommended,
+                'groundtruth': groundtruth,
             })
 
         self.report.update({
@@ -62,3 +67,6 @@ class RecommenderTest(object):
             'recommendation': recommendation,
             'recommendation_length': self.n_recommendations,
         })
+
+        print 'Finish generating recommendations for %d of %d user(s).' % (
+            len(recommendation), len(users))
