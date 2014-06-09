@@ -1,9 +1,10 @@
 import random
 
 from ghanalyzer.algorithms.graphs import get_nodes
+from ghanalyzer.algorithms.recommenders.base import Recommender
 from ghanalyzer.models import Repository
 
-class RandomRecommender(object):
+class RandomRecommender(Recommender):
     """random recommender"""
     
     def train(self, graph):

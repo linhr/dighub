@@ -7,12 +7,15 @@ import networkx as nx
 import pyximport
 pyximport.install()
 
+from ghanalyzer.algorithms.recommenders.base import Recommender
 import ghanalyzer.utils.randomwalk as randomwalk
 from ghanalyzer.models import Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 
 
-class PersonalRankRecommender(object):
+class PersonalRankRecommender(Recommender):
+    parameters = ['alpha', 'max_steps', 'epsilon']
+
     """recommender based on Topic-Sensitive PageRank (WWW 2002)"""
     def __init__(self, alpha, max_steps, epsilon):
         self.alpha = float(alpha)  # restart probability

@@ -15,6 +15,7 @@ from ghanalyzer.algorithms.features import (
 )
 from ghanalyzer.algorithms.graphs import Bigraph, AdjacencyMatrix, BigraphSimilarity
 from ghanalyzer.algorithms.graphfeatures import *
+from ghanalyzer.algorithms.recommenders.base import Recommender
 from ghanalyzer.models import User, Repository
 from ghanalyzer.utils.randomwalk import check_converged
 from ghanalyzer.utils.recommendation import recommend_by_rank
@@ -24,7 +25,9 @@ from ghanalyzer.utils import sparsetools
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-class SupervisedRWRecommender(object):
+class SupervisedRWRecommender(Recommender):
+    parameters = ['alpha', 'max_steps', 'lambda_', 'epsilon', 'loss_width']
+
     """recommender based on Supervised Random Walk (WSDM 2011)"""
     def __init__(self, data_path, max_steps=100, alpha=0.85, lambda_=0.01, epsilon=0.01, loss_width=1.0, weight_key=()):
         self.data_path = data_path

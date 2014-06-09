@@ -2,11 +2,14 @@ from collections import defaultdict
 
 from ghanalyzer.algorithms.graphs import Bigraph
 from ghanalyzer.algorithms.similarities import JaccardSimilarity
+from ghanalyzer.algorithms.recommenders.base import Recommender
 from ghanalyzer.models import User, Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 
 
-class CFRecommender(object):
+class CFRecommender(Recommender):
+    parameters = ['n_neighbors']
+
     def __init__(self, n_neighbors=None):
         self.n_neighbors = n_neighbors
 

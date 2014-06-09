@@ -1,11 +1,14 @@
 from sklearn.decomposition import NMF
 
 from ghanalyzer.algorithms.graphs import Bigraph
+from ghanalyzer.algorithms.recommenders.base import Recommender
 from ghanalyzer.models import User, Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 
 
-class FactorizationRecommender(object):
+class FactorizationRecommender(Recommender):
+    parameters = ['n_components']
+
     def __init__(self, n_components):
         self.n_components = n_components
 

@@ -61,6 +61,12 @@ class Command(AnalyzerCommand):
         test.run(print_every=args.print_every)
         
         test.report['name'] = args.recommender
+        test.report['experiment_parameters'] = {
+            'train_ratio': args.train_ratio,
+            'random_seed': args.random_seed,
+            'recommendation_count': args.recommendation_count,
+        }
+        test.report['recommender_parameters'] = recommender.get_parameters()
         self._write_report(test.report, args)
         
         frequencies = get_frequencies(test.report)

@@ -9,11 +9,12 @@ from ghanalyzer.algorithms.features import (
     load_description_features,
     load_follow_features,
 )
+from ghanalyzer.algorithms.recommenders.base import Recommender
 from ghanalyzer.models import User, Repository
 from ghanalyzer.utils.recommendation import recommend_by_rank
 
 
-class ContentBasedRecommender(object):
+class ContentBasedRecommender(Recommender):
     def __init__(self, data_path):
         self.data_path = data_path
 
