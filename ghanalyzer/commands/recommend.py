@@ -50,6 +50,8 @@ class Command(AnalyzerCommand):
         group.add_argument('--max-steps', type=int, default=10)
         group.add_argument('--data-path', default='')
         group.add_argument('--graph-path', nargs='+', default=())
+        group.add_argument('--feature-types', nargs='+', default=(),
+            choices=['behavior', 'content', 'relation'])
 
     def run(self, args):
         recommender = self._create_recommender(args)
@@ -105,7 +107,7 @@ class Command(AnalyzerCommand):
             recommender = SupervisedRWRecommender(data_path=args.data_path,
                 alpha=args.alpha, max_steps=args.max_steps, lambda_=args.lambda_w,
                 epsilon=args.epsilon, loss_width=args.loss_width,
-                weight_key=args.weight_key)
+                weight_key=args.weight_key, feature_types=args.feature_types)
         return recommender
 
     def _load_dataset(self, args):

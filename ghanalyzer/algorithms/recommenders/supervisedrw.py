@@ -26,17 +26,20 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 class SupervisedRWRecommender(Recommender):
-    parameters = ['alpha', 'max_steps', 'lambda_', 'epsilon', 'loss_width']
+    parameters = ['alpha', 'max_steps', 'lambda_', 'epsilon', 'loss_width',
+        'weight_key', 'feature_types']
 
     """recommender based on Supervised Random Walk (WSDM 2011)"""
-    def __init__(self, data_path, max_steps=100, alpha=0.85, lambda_=0.01, epsilon=0.01, loss_width=1.0, weight_key=()):
+    def __init__(self, data_path, max_steps=100, alpha=0.85, lambda_=0.01,
+            epsilon=0.01, loss_width=1.0, weight_key=(), feature_types=()):
         self.data_path = data_path
         self.max_steps = max_steps
         self.alpha = float(alpha)
         self.lambda_ = float(lambda_)
         self.epsilon = float(epsilon)
         self.loss_width = float(loss_width)
-        self.weight_key = weight_key
+        self.weight_key = list(weight_key)
+        self.feature_types = list(set(feature_types))
 
     def train(self, graph):
         self.graph = graph.to_directed()
@@ -59,20 +62,29 @@ class SupervisedRWRecommender(Recommender):
 
     def _create_feature_extractor(self):
         bigraph = Bigraph(self.graph, source_cls=User, target_cls=Repository)
-        followers, followees = load_follow_features(self.data_path, bigraph.sources)
-        languages = load_language_features(self.data_path, bigraph.targets)
-        descriptions = load_description_features(self.data_path, bigraph.targets)
+        features = []
+        if 'behavior' in self.feature_types:
+            features.extend([
+                (bigraph.matrix.copy(), 'source'),
+                (bigraph.matrix.T.tocsr().copy(), 'target'),
+            ])
+        if 'content' in self.feature_types:
+            languages = load_language_features(self.data_path, bigraph.targets)
+            descriptions = load_description_features(self.data_path, bigraph.targets)
+            features.extend([
+                (languages, 'target'),
+                (descriptions, 'target'),
+            ])
+        if 'relation' in self.feature_types:
+            followers, followees = load_follow_features(self.data_path, bigraph.sources)
+            features.extend([
+                (followers, 'source'),
+                (followees, 'source'),
+            ])
         gc.collect()  # force garbage collection
-        features = [
-            (bigraph.matrix.copy(), 'source'),
-            (bigraph.matrix.T.tocsr().copy(), 'target'),
-            (languages, 'target'),
-            (descriptions, 'target'),
-            (followers, 'source'),
-            (followees, 'source'),
-        ]
         extractors = [
             ConstantFeature(self.adj),
+            EdgeAttributeFeature(self.adj, keys=self.weight_key),
         ]
         for feature, type_ in features:
             similarity = BigraphSimilarity(bigraph, feature, type_)
