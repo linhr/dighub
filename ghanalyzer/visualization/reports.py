@@ -11,17 +11,13 @@ MARKERS = ['s-', '.--', '^-', 'o-']
 COLORS = ['blue', 'magenta', 'red', 'green']
 
 def _plot_report_curves(reports, plotter):
-    plots, labels = [], []
     for i, report in enumerate(reports):
         x, y = plotter(report)
+        label = report.get('name', 'Report %d' % (i+1))
         marker = MARKERS[i % len(MARKERS)]
         color = COLORS[i % len(COLORS)]
-        line, = pyplot.plot(x, y, marker, color=color,
+        pyplot.plot(x, y, marker, label=label, color=color,
             linewidth=3.0, markersize=9.0, markeredgecolor=color)
-        label = report.get('name', 'Report %d' % (i+1))
-        plots.append(line)
-        labels.append(label)
-    return plots, labels
 
 
 def plot_precision_recall(reports, ranks):
@@ -31,11 +27,10 @@ def plot_precision_recall(reports, ranks):
         order = np.argsort(recall)
         return recall[order], precision[order]
 
-    plots, labels = _plot_report_curves(reports, _plot_curve)
+    _plot_report_curves(reports, _plot_curve)
     pyplot.xlabel('Recall')
     pyplot.ylabel('Precision')
-    pyplot.legend(plots, labels, loc=1)
-    return plots, labels
+    pyplot.legend(loc=1)
 
 
 def plot_roc(reports, ranks):
@@ -47,8 +42,7 @@ def plot_roc(reports, ranks):
         order = np.argsort(x)
         return x[order], y[order]
 
-    plots, labels = _plot_report_curves(reports, _plot_curve)
+    _plot_report_curves(reports, _plot_curve)
     pyplot.xlabel('False positive rate')
     pyplot.ylabel('True positive rate')
-    pyplot.legend(plots, labels, loc=4)
-    return plots, labels
+    pyplot.legend(loc=4)
