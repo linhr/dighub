@@ -28,16 +28,7 @@ class Command(AnalyzerCommand):
         parser.add_argument('--show-recall', action='store_true')
     
     def run(self, args):
-        if args.format == 'json':
-            read_report = read_json_report
-        elif args.format == 'pickle':
-            read_report = read_pickle_report
-        
-        reports = []
-        for path in args.path:
-            report = read_report(path)
-            report['filename'] = os.path.basename(path)
-            reports.append(report)
+        reports = self._iter_reports(args)
 
         if args.type == 'pr':
             plot_precision_recall(reports, args.ranks)
@@ -68,3 +59,14 @@ class Command(AnalyzerCommand):
                 for i, k in enumerate(ranks):
                     print 'R@%d=%f, ' % (k, recall[i]),
             print 'MAP=%f, AUC=%f' % (map_, auc)
+
+    def _iter_reports(self, args):
+        if args.format == 'json':
+            read_report = read_json_report
+        elif args.format == 'pickle':
+            read_report = read_pickle_report
+
+        for path in args.path:
+            report = read_report(path)
+            report['filename'] = os.path.basename(path)
+            yield report
