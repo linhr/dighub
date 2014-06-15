@@ -99,6 +99,7 @@ def load_language_co_occurrence(path):
             for k, v in languages.iteritems():
                 graph.add_node(k)
                 graph.node[k]['size'] = graph.node[k].get('size', 0) + v
+                graph.node[k]['occurrence'] = graph.node[k].get('occurrence', 0) + 1
             for m, n in combinations(languages.keys(), 2):
                 graph.add_edge(m, n)
                 graph[m][n]['weight'] = graph[m][n].get('weight', 0) + 1

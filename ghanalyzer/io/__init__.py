@@ -9,6 +9,7 @@ from ghanalyzer.io.graphs import (
     load_graph,
     load_node_attributes,
     load_language_co_occurrence,
+    load_language_graph,
     read_json_graph,
     write_json_graph,
 )

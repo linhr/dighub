@@ -16,9 +16,10 @@ def draw_co_occurrence_graph(graph, node_size_zoom=50, alpha=0.5, k=1.25):
         edge_labels={(u, v): d['weight'] for u, v, d in graph.edges(data=True)})
 
 
-def draw_co_occurrence_matrix(graph, language_count=None, reorder=False):
+def draw_co_occurrence_matrix(graph, language_count=None, order_key='size', reorder=False):
+    assert order_key in ('size', 'occurrence')
     nodes = graph.nodes_iter(data=True)
-    nodes = sorted(nodes, key=lambda x: x[1]['size'], reverse=True)
+    nodes = sorted(nodes, key=lambda x: x[1][order_key], reverse=True)
     nodes = list(x[0] for x in nodes)
     if language_count:
         nodes = nodes[:language_count]
