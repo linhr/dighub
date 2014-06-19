@@ -65,28 +65,31 @@ class SupervisedRWRecommender(Recommender):
         features = []
         if 'behavior' in self.feature_types:
             features.extend([
-                (bigraph.matrix.copy(), 'source'),
-                (bigraph.matrix.T.tocsr().copy(), 'target'),
+                (bigraph.matrix.copy(), 'source', 'contributed repository'),
+                (bigraph.matrix.T.tocsr().copy(), 'target', 'contributor'),
             ])
         if 'content' in self.feature_types:
             languages = load_language_features(self.data_path, bigraph.targets)
             descriptions = load_description_features(self.data_path, bigraph.targets)
             features.extend([
-                (languages, 'target'),
-                (descriptions, 'target'),
+                (languages, 'target', 'language'),
+                (descriptions, 'target', 'description'),
             ])
         if 'relation' in self.feature_types:
             followers, followees = load_follow_features(self.data_path, bigraph.sources)
             features.extend([
-                (followers, 'source'),
-                (followees, 'source'),
+                (followers, 'source', 'follower'),
+                (followees, 'source', 'followee'),
             ])
         gc.collect()  # force garbage collection
         extractors = [
             ConstantFeature(self.adj),
             EdgeAttributeFeature(self.adj, keys=self.weight_key),
         ]
-        for feature, type_ in features:
+        type_map = {'source': 'user', 'target': 'repository'}
+        for feature, type_, name in features:
+            print 'Creating node similarity matrix from %s feature (%s count: %d, ' \
+                'dimension: %d)...' % (name, type_map[type_], feature.shape[0], feature.shape[1])
             similarity = BigraphSimilarity(bigraph, feature, type_)
             extractor = SimilarityFeature(self.adj, similarity)
             extractors.append(extractor)
